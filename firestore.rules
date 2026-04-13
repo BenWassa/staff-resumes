@@ -20,11 +20,35 @@ service cloud.firestore {
       return isAuth() && userDoc().data.role == "member";
     }
 
+    // Authorised email whitelist — keep in sync with web/src/allowedEmails.js
+    function isAllowedEmail() {
+      let e = request.auth.token.email.lower();
+      return e in [
+        "graham.pressey@blacklineconsulting.ca",
+        "ian.shelley@blacklineconsulting.ca",
+        "abdel.al-sharif@blacklineconsulting.ca",
+        "anum.nasir@blacklineconsulting.ca",
+        "yash.melwani@blacklineconsulting.ca",
+        "nikhil.konduru@blacklineconsulting.ca",
+        "john.connolly@blacklineconsulting.ca",
+        "michelle.tam@blacklineconsulting.ca",
+        "rehan.setna@blacklineconsulting.ca",
+        "laura.devenny@blacklineconsulting.ca",
+        "ben.haddon@blacklineconsulting.ca"
+      ];
+    }
+
     // ── /users ──────────────────────────────────────────────────────────────
-    // Users can read their own doc. Only admins (or Cloud Functions) write.
+    // Users can read their own doc.
+    // A user may create their own doc only if their email is on the whitelist
+    // and they are not self-assigning admin. Admins can write any user doc.
     match /users/{uid} {
       allow read: if isAuth() && request.auth.uid == uid;
-      allow write: if isAdmin();
+      allow create: if isAuth()
+        && request.auth.uid == uid
+        && request.resource.data.role != "admin"
+        && isAllowedEmail();
+      allow update, delete: if isAdmin();
     }
 
     // ── /staff ──────────────────────────────────────────────────────────────

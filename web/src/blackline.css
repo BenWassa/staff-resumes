@@ -68,6 +68,21 @@
   }
 }
 
+@layer components {
+  .input-field {
+    @apply w-full px-3 py-2.5 text-sm border bg-white transition-colors outline-none;
+    border-color: var(--border-main);
+    color: var(--text-main);
+  }
+  .input-field::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+  .input-field:focus {
+    border-color: var(--accent-main);
+  }
+}
+
 @layer utilities {
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
