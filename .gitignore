@@ -1,5 +1,13 @@
 /.claude
 /.venv
+
+# Firebase service account keys — never commit these
+service-account*.json
+*-service-account.json
+
+# Firebase local config
+web/.env.local
+web/.env.production
 /node_modules
 /web/node_modules/
 **/.vite/

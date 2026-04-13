@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: is the request from a signed-in user?
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Helper: fetch the calling user's /users doc (for role check)
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isAuth() && userDoc().data.role == "admin";
+    }
+
+    function isMember() {
+      return isAuth() && userDoc().data.role == "member";
+    }
+
+    // ── /users ──────────────────────────────────────────────────────────────
+    // Users can read their own doc. Only admins (or Cloud Functions) write.
+    match /users/{uid} {
+      allow read: if isAuth() && request.auth.uid == uid;
+      allow write: if isAdmin();
+    }
+
+    // ── /staff ──────────────────────────────────────────────────────────────
+    // Any authenticated user can read staff profiles.
+    // A member can write their own linked staff doc; admins can write any.
+    match /staff/{staffId} {
+      allow read: if isAuth();
+      allow write: if isAdmin()
+        || (isMember() && userDoc().data.staff_id == staffId);
+
+      // Education subcollection — same rules as parent
+      match /education/{eduId} {
+        allow read: if isAuth();
+        allow write: if isAdmin()
+          || (isMember() && userDoc().data.staff_id == staffId);
+      }
+
+      // Projects subcollection — same rules as parent
+      match /projects/{projectKey} {
+        allow read: if isAuth();
+        allow write: if isAdmin()
+          || (isMember() && userDoc().data.staff_id == staffId);
+      }
+    }
+
+    // ── /pursuits ────────────────────────────────────────────────────────────
+    // All authenticated users read; only admins create/update.
+    match /pursuits/{pursuitId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ── /sessions ────────────────────────────────────────────────────────────
+    // All authenticated users can read and write sessions.
+    match /sessions/{sessionId} {
+      allow read, write: if isAuth();
+    }
+
+    // ── /jobs ────────────────────────────────────────────────────────────────
+    // Users can read their own jobs. Only the backend service account writes.
+    match /jobs/{jobId} {
+      allow read: if isAuth()
+        && resource.data.created_by == request.auth.uid;
+      allow write: if false; // backend only (service account bypasses rules)
+    }
+  }
+}
