@@ -19,13 +19,24 @@ from pydantic import BaseModel
 from web.api.project_dates import extract_engagement_number, load_master_project_dates
 from web.api.workbook import get_person_data, list_people
 from web.api.runner import generate, OUTPUTS_ROOT
+from web.api.config_store import extract_pursuits_root, get_pursuits_root, save_config
 from src.runtime_config import get_runtime_config
 
 app = FastAPI(title="Resume Generator API")
 JOB_LOCK = threading.Lock()
 
 RUNTIME = get_runtime_config()
-PURSUITS_ROOT = RUNTIME.pursuits_root
+
+
+def _get_pursuits_root() -> Path | None:
+    """Return pursuits root: config store takes precedence over runtime env."""
+    stored = get_pursuits_root()
+    if stored:
+        return stored
+    rt_path = RUNTIME.pursuits_root
+    if rt_path.exists():
+        return rt_path
+    return None
 
 JOBS: dict[str, dict] = {}
 
@@ -255,7 +266,88 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
         )
 
 
+# ── Path security ──────────────────────────────────────────────────────────────
+
+
+def _resolve_project_path(project_id: str) -> Path:
+    """Return the absolute path for a project folder, enforcing pursuits root containment.
+
+    Raises HTTPException 400 on traversal attempts or if pursuits root is not configured.
+    Raises HTTPException 404 if the resolved folder does not exist.
+    """
+    pursuits_root = _get_pursuits_root()
+    if pursuits_root is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Pursuits folder is not configured. Complete onboarding first.",
+        )
+
+    # Reject anything that looks like an absolute path or contains traversal sequences
+    if Path(project_id).is_absolute() or ".." in Path(project_id).parts:
+        raise HTTPException(status_code=400, detail="Invalid project identifier.")
+
+    resolved = (pursuits_root / project_id).resolve()
+
+    # Must be strictly inside pursuits_root (not equal to it)
+    try:
+        resolved.relative_to(pursuits_root.resolve())
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid project identifier.")
+
+    if resolved == pursuits_root.resolve():
+        raise HTTPException(status_code=400, detail="Invalid project identifier.")
+
+    # Guard against symlink escapes
+    if resolved.is_symlink():
+        raise HTTPException(status_code=400, detail="Invalid project identifier.")
+
+    if not resolved.exists():
+        raise HTTPException(status_code=404, detail=f"Project folder not found: {project_id}")
+
+    return resolved
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────────
+
+
+# ── Onboarding ─────────────────────────────────────────────────────────────────
+
+
+class OnboardingConfigRequest(BaseModel):
+    picked_path: str
+    dry_run: bool = False
+
+
+@app.get("/api/onboarding/status")
+def api_onboarding_status():
+    """Return whether onboarding is complete and the current pursuits root if set."""
+    pursuits_root = _get_pursuits_root()
+    if pursuits_root is None:
+        return {"configured": False, "pursuits_root": None}
+    return {"configured": True, "pursuits_root": str(pursuits_root)}
+
+
+@app.post("/api/onboarding/config")
+def api_onboarding_config(body: OnboardingConfigRequest):
+    """Accept a user-picked path, extract the pursuits root, and optionally persist it.
+
+    Accepts the root itself or a project subfolder one level deep.
+    When dry_run=true, resolves and validates without saving (used for preview).
+    Returns the resolved pursuits_root on success.
+    """
+    extracted = extract_pursuits_root(body.picked_path)
+    if extracted is None:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Could not identify a Pursuits folder at that location. "
+                "Please select the folder that contains your project folders "
+                "(e.g. 'Client Name - 2025024')."
+            ),
+        )
+    if not body.dry_run:
+        save_config({"pursuits_root": str(extracted)})
+    return {"pursuits_root": str(extracted)}
 
 
 @app.get("/api/people")
@@ -281,14 +373,15 @@ def extract_short_client(client_name):
 
 
 def scan_pursuits_folder():
-    """Scan the OneDrive Pursuits folder to find projects independently."""
+    """Scan the configured Pursuits folder to find project subfolders."""
     projects = []
-    if not PURSUITS_ROOT.exists():
+    pursuits_root = _get_pursuits_root()
+    if pursuits_root is None or not pursuits_root.exists():
         return projects
 
     # Pattern: Client Name - YYYYNNN (e.g. Anaheim - 2026049)
     # We want everything before the " - "
-    for path in PURSUITS_ROOT.iterdir():
+    for path in pursuits_root.iterdir():
         if not path.is_dir() or path.name.lower().startswith("_"):
             continue
 
@@ -509,35 +602,57 @@ def api_yaml_import(body: YamlImportRequest):
 
 
 # ── Save state endpoints ────────────────────────────────────────────────────────
+#
+# Save state is scoped per project folder.
+# slug = project folder name (e.g. "City of Medicine Hat (AB) - 2025024")
+# save file: <pursuits_root>/<slug>/resume-outputs/save_state.json
+# output dirs: <pursuits_root>/<slug>/resume-outputs/{individual,consolidated}/
+
+
+def _project_outputs_dir(project_id: str) -> Path:
+    """Return the resume-outputs dir for a project, enforcing path security."""
+    project_path = _resolve_project_path(project_id)
+    return project_path / "resume-outputs"
 
 
 @app.get("/api/saves", response_model=list[SaveSummary])
 def api_list_saves():
+    """Aggregate save_state.json files from all project folders in pursuits root."""
     saves = []
-    for save_file in OUTPUTS_ROOT.glob("*/save_state.json"):
+    pursuits_root = _get_pursuits_root()
+    if pursuits_root is None or not pursuits_root.exists():
+        return saves
+
+    for project_dir in pursuits_root.iterdir():
+        if not project_dir.is_dir() or project_dir.name.startswith("_"):
+            continue
+        save_file = project_dir / "resume-outputs" / "save_state.json"
+        if not save_file.exists():
+            continue
         try:
             data = json.loads(save_file.read_text(encoding="utf-8"))
             saves.append(
                 SaveSummary(
-                    slug=save_file.parent.name,
-                    package_name=data.get("package_name", save_file.parent.name),
+                    slug=project_dir.name,
+                    package_name=data.get("package_name", project_dir.name),
                     saved_at=data.get("saved_at", ""),
                     selected_names=data.get("selected_names", []),
-                    selected_project_id=data.get("selected_project_id"),
+                    selected_project_id=data.get("selected_project_id", project_dir.name),
                 )
             )
         except Exception:
             continue
+
     saves.sort(key=lambda s: s.saved_at, reverse=True)
     return saves
 
 
-@app.get("/api/saves/{slug}", response_model=SaveStatePayload)
+@app.get("/api/saves/{slug:path}", response_model=SaveStatePayload)
 def api_get_save(slug: str):
-    save_file = OUTPUTS_ROOT / slug / "save_state.json"
+    save_file = _project_outputs_dir(slug) / "save_state.json"
     if not save_file.exists():
         raise HTTPException(
-            status_code=404, detail="No save state found for this package."
+            status_code=404, detail="No save state found for this project."
         )
     try:
         return json.loads(save_file.read_text(encoding="utf-8"))
@@ -547,14 +662,13 @@ def api_get_save(slug: str):
         ) from exc
 
 
-@app.get("/api/saves/{slug}/yaml")
+@app.get("/api/saves/{slug:path}/yaml")
 def api_export_save_yaml(slug: str):
-    save_file = OUTPUTS_ROOT / slug / "save_state.json"
+    save_file = _project_outputs_dir(slug) / "save_state.json"
     if not save_file.exists():
         raise HTTPException(
-            status_code=404, detail="No save state found for this package."
+            status_code=404, detail="No save state found for this project."
         )
-
     try:
         save_payload = json.loads(save_file.read_text(encoding="utf-8"))
     except Exception as exc:
@@ -572,22 +686,33 @@ def api_export_save_yaml(slug: str):
     )
 
 
-@app.post("/api/saves/{slug}")
+@app.post("/api/saves/{slug:path}")
 def api_save_state(slug: str, body: SaveStatePayload):
-    save_dir = OUTPUTS_ROOT / slug
-    save_dir.mkdir(parents=True, exist_ok=True)
-    save_file = save_dir / "save_state.json"
-    save_file.write_text(
-        json.dumps(body.model_dump(), indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    outputs_dir = _project_outputs_dir(slug)
+    outputs_dir.mkdir(parents=True, exist_ok=True)
+    save_file = outputs_dir / "save_state.json"
+    try:
+        save_file.write_text(
+            json.dumps(body.model_dump(), indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        # OneDrive/SharePoint may lock the file transiently; surface a clear message.
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"Could not write save state (the file may be locked by OneDrive): {exc}. "
+                "Your resumes are already saved. Try again in a moment."
+            ),
+        ) from exc
     return {"ok": True}
 
 
-@app.get("/api/saves/{slug}/outputs_exist", response_model=OutputsExistResponse)
+@app.get("/api/saves/{slug:path}/outputs_exist", response_model=OutputsExistResponse)
 def api_outputs_exist(slug: str):
-    individual_dir = OUTPUTS_ROOT / slug / "individual"
-    consolidated_dir = OUTPUTS_ROOT / slug / "consolidated"
+    outputs_dir = _project_outputs_dir(slug)
+    individual_dir = outputs_dir / "individual"
+    consolidated_dir = outputs_dir / "consolidated"
     individual_count = (
         len(list(individual_dir.glob("*.docx"))) if individual_dir.exists() else 0
     )
@@ -603,18 +728,17 @@ def api_outputs_exist(slug: str):
     )
 
 
-@app.get("/api/saves/{slug}/open_folder")
+@app.get("/api/saves/{slug:path}/open_folder")
 def api_open_output_folder(slug: str):
     import subprocess
 
-    path = OUTPUTS_ROOT / slug
-    if not path.exists():
-        path.mkdir(parents=True, exist_ok=True)
+    outputs_dir = _project_outputs_dir(slug)
+    outputs_dir.mkdir(parents=True, exist_ok=True)
 
     if sys.platform == "win32":
-        os.startfile(path)
+        os.startfile(outputs_dir)
     elif sys.platform == "darwin":
-        subprocess.Popen(["open", str(path)])
+        subprocess.Popen(["open", str(outputs_dir)])
     else:
-        subprocess.Popen(["xdg-open", str(path)])
+        subprocess.Popen(["xdg-open", str(outputs_dir)])
     return {"ok": True}

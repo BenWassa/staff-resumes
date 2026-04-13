@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog } from 'electron';
+import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron';
 import { spawn } from 'child_process';
 import http from 'http';
 import path from 'path';
@@ -158,6 +158,17 @@ const startPythonBackend = () => {
     );
   });
 };
+
+ipcMain.handle('select-folder', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+    title: 'Select your Pursuits folder',
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+  return result.filePaths[0];
+});
 
 app.on('ready', async () => {
   startPythonBackend();

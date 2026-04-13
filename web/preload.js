@@ -1,3 +1,5 @@
-window.addEventListener('DOMContentLoaded', () => {
-  console.log('Renderer process ready');
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  selectFolder: () => ipcRenderer.invoke('select-folder'),
 });

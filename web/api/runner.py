@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import re
 import sys
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -14,9 +12,13 @@ from src.data_loader import load_profile
 from src.global_workbook import resolve_workbook_path
 from src.pipeline import run_pipeline
 from src.runtime_config import get_runtime_config
+from web.api.config_store import get_pursuits_root
 
 RUNTIME = get_runtime_config()
+# Legacy fallback root used only for the /api/saves index when pursuit mode is active
 OUTPUTS_ROOT = RUNTIME.outputs_root
+
+PURSUIT_OUTPUT_FOLDER = "resume-outputs"
 
 
 def _slugify(value: str) -> str:
@@ -60,16 +62,17 @@ def generate(
     """
     runtime = get_runtime_config()
     workbook_path = resolve_workbook_path(runtime, refresh_if_configured=False)
-    package_slug = _slugify(package_name)
-    if runtime.use_pursuit_outputs and selected_project_id:
-        output_dir = (
-            runtime.pursuits_root
-            / selected_project_id
-            / runtime.pursuit_output_folder_name
-            / package_slug
+
+    pursuits_root = get_pursuits_root() or (
+        runtime.pursuits_root if runtime.pursuits_root.exists() else None
+    )
+    if not selected_project_id or pursuits_root is None:
+        raise ValueError(
+            "A project must be selected and the Pursuits folder must be configured "
+            "before generating resumes."
         )
-    else:
-        output_dir = runtime.outputs_root / package_slug
+
+    output_dir = pursuits_root / selected_project_id / PURSUIT_OUTPUT_FOLDER
 
     people_config = []
     consolidated_include = [
