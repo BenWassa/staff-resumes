@@ -12,22 +12,28 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.data_loader import PERSON_SHEET_ALIASES, load_profile, load_projects
 from src.formatter import normalize_project_date_range
+from src.global_workbook import resolve_workbook_path
 from src.project_date_matcher import get_approved_dates
+from src.runtime_config import get_runtime_config
 
-WORKBOOK_PATH = Path(__file__).resolve().parents[2] / "data" / "extraction IPR.xlsx"
+
+def _workbook_path() -> Path:
+    runtime = get_runtime_config()
+    return resolve_workbook_path(runtime, refresh_if_configured=False)
 
 _ALIAS_REVERSE = {value: key for key, value in PERSON_SHEET_ALIASES.items()}
 
 
 def list_people() -> list[dict]:
     """Return all people found in the workbook (those with a _projects sheet)."""
-    wb = openpyxl.load_workbook(str(WORKBOOK_PATH), read_only=True, data_only=True)
+    workbook_path = _workbook_path()
+    wb = openpyxl.load_workbook(str(workbook_path), read_only=True, data_only=True)
     people = []
     for sheet_name in wb.sheetnames:
         if sheet_name.endswith("_projects"):
             workbook_name = sheet_name[: -len("_projects")]
             canonical_name = _ALIAS_REVERSE.get(workbook_name, workbook_name)
-            profile = load_profile(str(WORKBOOK_PATH), canonical_name)
+            profile = load_profile(str(workbook_path), canonical_name)
             people.append(
                 {
                     "name": canonical_name,
@@ -41,8 +47,9 @@ def list_people() -> list[dict]:
 
 def get_person_data(person_name: str) -> dict:
     """Return projects list and education entries for a person."""
-    df = load_projects(str(WORKBOOK_PATH), person_name)
-    profile = load_profile(str(WORKBOOK_PATH), person_name)
+    workbook_path = _workbook_path()
+    df = load_projects(str(workbook_path), person_name)
+    profile = load_profile(str(workbook_path), person_name)
 
     projects = []
     for _, row in df.iterrows():

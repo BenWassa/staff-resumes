@@ -12,9 +12,10 @@ Deployment success means:
 - Environment-specific paths are configurable (no username coupling).
 - A failed release can be rolled back quickly.
 - We have a clear go/no-go gate before demo and team rollout.
+- Phase 0 and Phase 1 are repo-local only: no read/write operations outside this folder until explicitly approved.
 
 ## 2. Current Risks to Address
-- Hardcoded or environment-coupled external paths in web/date-enrichment flows.
+- Hardcoded or environment-coupled external paths in web/data-enrichment flows.
 - Mixed setup expectations (Python + Node) are not fully standardized for non-technical users.
 - Limited explicit smoke/regression checks before release.
 - No documented rollback runbook.
@@ -24,6 +25,7 @@ Deployment success means:
 ## 3. Release Readiness Criteria (Go/No-Go)
 Release is allowed only if all are true:
 - [ ] No absolute user-specific paths in active codepaths.
+- [x] Local-safe mode verified: all resolved paths stay inside this repository root.
 - [ ] Fresh-machine setup tested by at least 1 teammate.
 - [ ] CLI smoke test passes on a known workbook/template.
 - [ ] Web smoke test passes end-to-end (package name -> team selection -> generate outputs).
@@ -33,34 +35,48 @@ Release is allowed only if all are true:
 - [ ] Rollback procedure tested once in a dry run.
 - [ ] README quickstart is accurate for both CLI and Web.
 
-## 4. Phase 1: Configuration Hardening
-- [ ] Introduce typed runtime config for all environment-specific values.
+## 4. Phase 0: Local-Safe Guardrails (Required First)
+- [x] Add a strict "repo-local mode" as the default runtime behavior.
+- [ ] Add path-boundary validation:
+  - [x] Reject configured paths that resolve outside the repository root while local-safe mode is enabled.
+  - [x] Print a clear error that includes the attempted path and expected repo-relative location.
+- [ ] Keep all active inputs/outputs inside repo-local folders only:
+  - inputs under `data/`
+  - templates under `templates/`
+  - outputs under `outputs/` (or repo-local pursuit test folders)
+- [x] Add an explicit promotion switch for later:
+  - Example: `ALLOW_EXTERNAL_PATHS=false` by default.
+  - External locations are blocked unless this is intentionally enabled.
+- [ ] Add one safety test that proves external paths are denied in local-safe mode.
+
+## 5. Phase 1: Configuration Hardening (Local-Only)
+- [x] Introduce typed runtime config for all environment-specific values.
   - Suggested:
     - root `.env` for shared runtime config
     - `web/.env` for web-specific config if needed
-- [ ] Replace all hardcoded external paths with config/env vars:
-  - `SHARED_DATA_ROOT` — path to the shared staff data folder (e.g. each user's OneDrive folder for `_Proposal Objects\Staff Resumes`, replacing their own username automatically)
-  - `PURSUITS_ROOT` — path to the pursuits folder root (same pattern: per-user OneDrive path, username resolved automatically)
-- [ ] Add startup validation:
+- [x] Replace hardcoded paths with config/env vars, but keep defaults repo-local first:
+  - `LOCAL_DATA_ROOT` (default: `./data`)
+  - `LOCAL_PURSUITS_ROOT` (default: repo-local test folder)
+- [ ] Defer `SHARED_DATA_ROOT` / `PURSUITS_ROOT` production wiring until promotion phase.
+- [x] Add startup validation:
   - Fail fast with actionable errors when required paths/files are missing.
   - Print exactly which env var or config key is missing.
   - If a user sets a path that goes too deep (e.g. into a subfolder), detect and suggest the correct parent automatically.
-- [ ] Keep sane defaults for repo-local paths (`data/`, `templates/`, `outputs/`) while allowing overrides.
+- [x] Keep sane defaults for repo-local paths (`data/`, `templates/`, `outputs/`) while allowing overrides that remain inside this repo in local-safe mode.
 - [ ] Pin runtime versions to avoid drift across machines:
-  - Add `.python-version` (e.g. `3.11`) for Python version consistency.
-  - Add `.nvmrc` (e.g. `20`) for Node version consistency.
+  - [x] Add `.python-version` (e.g. `3.11`) for Python version consistency.
+  - [x] Add `.nvmrc` (e.g. `20`) for Node version consistency.
   - These are read automatically by `pyenv` and `nvm` if installed, and document the required versions clearly in the README for users without those tools.
 
-## 5. Phase 1A: Standardized Shared Data Source
-- [ ] Define one shared source-of-truth location for staff data via `SHARED_DATA_ROOT` config key:
-  - Each user's value will point to their own OneDrive path for `_Proposal Objects\Staff Resumes` — same location, different username prefix.
-- [ ] Move `data\Blackline Staff Project Database.xlsm` to that shared folder.
-- [ ] Update config to reference the shared workbook path via `SHARED_DATA_ROOT` for both CLI and Web flows.
-- [ ] Confirm all staff who maintain resume/project records can access and edit that shared workbook.
-- [ ] Document this rule in README/runbook:
-  - "All production staff data updates must be made in the shared workbook in Staff Resumes."
+## 6. Phase 1A: Local Data Stabilization
+- [x] Local split workbooks created at `data\person_workbooks\` (one `.xlsx` per person with only `{Name}_projects` + `{Name}_profile` tabs).
+- [x] Split workbook exports now write to `data\person_workbooks` (not `outputs\`).
+- [ ] Keep `data\Blackline Staff Project Database.xlsm` in-repo during local validation.
+- [ ] Ensure both CLI and Web flows can run end-to-end against repo-local workbook inputs.
+- [ ] Document temporary rule in README/runbook:
+  - "During local-safe phase, all data reads/writes remain inside this repository."
 
-## 6. Phase 1B: Shared Workbook Risks, Constraints, and Recommendation
+## 7. Phase 1B: Shared Workbook Risks, Constraints, and Recommendation (Deferred Until Promotion)
 - [ ] Treat the move to OneDrive/SharePoint as a data-access decision, not just a file-location change.
 - [ ] Validate the shared workbook specifically as a macro-enabled Excel file (`.xlsm`), not just as a normal Excel workbook.
 - [ ] Confirm whether Blackline staff will open/edit the workbook in desktop Excel only.
@@ -84,46 +100,66 @@ Release is allowed only if all are true:
 - [ ] Add a go/no-go note:
   - Do not make the shared `.xlsm` the only production dependency until concurrency testing passes in the Blackline Microsoft 365 environment.
 
-## 7. Phase 1C: Project-Based Output Layout (Pursuits Folders)
+## 7A. Shared Global Workbook Pattern (Operational Decision)
+- [x] Source of truth remains split person workbooks in shared Staff Resumes.
+- [x] Generate a single global workbook into a protected shared subfolder, for example:
+  - `...\\Staff Resumes\\_generated\\`
+- [x] Write each run as a timestamped file for traceability, for example:
+  - `global_resume_data_YYYY-MM-DD_HHMMSS.xlsx`
+- [x] Use safe promotion flow:
+  - [x] write to temp file first
+  - [x] validate/openability check
+  - [x] rename or copy into `global_resume_data_latest.xlsx` only after success
+- [x] Cleanup policy:
+  - [x] remove older generated timestamped files only after the newest run is confirmed valid
+  - [x] keep a small safety buffer (recommended: keep last 1-2 prior files)
+- [x] Treat generated global workbook as disposable build artifact:
+  - [x] no manual edits expected
+  - [x] rely on source workbooks + Microsoft 365 version history for recovery
+- [ ] Permissions hardening:
+  - restrict write access for generated artifact location to designated maintainers/service account when feasible
+  - read access can remain broader for tool consumers
+
+## 8. Phase 1C: Project-Based Output Layout (Repo-Local First)
 - [ ] Reconfigure output routing to be project-first, not global repo output-first.
-- [ ] For each pursuit, write outputs into that pursuit's folder via `PURSUITS_ROOT`, for example:
-  - `{PURSUITS_ROOT}\HSCPOA HR - 2026047\resume-outputs`
+- [ ] For each pursuit, write outputs into a repo-local pursuits test root first, for example:
+  - `.\pursuits_local\HSCPOA HR - 2026047\resume-outputs`
 - [ ] Standardize subfolders under `resume-outputs`:
   - `save-state`
   - `consolidated`
   - `individual`
 - [ ] Keep unique run folders or timestamped filenames inside each subfolder to avoid sync collisions/conflicted copies.
-- [ ] Add config keys for:
-  - pursuit root path (`PURSUITS_ROOT`, selected per project)
-  - output folder name default (`resume-outputs`)
-  - overwrite policy (`never` by default; version/timestamp instead)
+- [x] Add config keys for:
+  - [x] local pursuit root path (`LOCAL_PURSUITS_ROOT`, selected per project)
+  - [x] output folder name default (`resume-outputs`)
+  - [ ] overwrite policy (`never` by default; version/timestamp instead)
 - [ ] Ensure CLI and Web use the same output resolver logic so both flows write identical structure.
 
-## 8. Phase 2: Setup and Onboarding
-- [ ] Add a one-command setup path for Windows users, e.g. `scripts/setup.ps1`:
-  - create venv
-  - install `requirements.txt` and `web/requirements.txt`
-  - install frontend deps in `web/`
-  - optionally create `.env` from `.env.example`
-- [ ] Add a lightweight config check command, e.g. `python -m src.validate_config` (or equivalent script).
-- [ ] Provide `.env.example` with placeholder values and comments.
+## 9. Phase 2: Setup and Onboarding
+- [x] Add a one-command setup path for Windows users, e.g. `scripts/setup.ps1`:
+  - [x] create venv
+  - [x] install `requirements.txt` and `web/requirements.txt`
+  - [x] install frontend deps in `web/`
+  - [x] optionally create `.env` from `.env.example`
+- [x] Add a lightweight config check command, e.g. `python -m src.validate_config` (or equivalent script).
+- [x] Provide `.env.example` with placeholder values and comments.
 - [ ] Ensure no secret or local path values are committed.
 
-## 9. Phase 3: Quality Gates and Usage Guidance
+## 10. Phase 3: Quality Gates and Usage Guidance
 - [ ] Define and run minimum pre-release checks:
   - `pytest`
-  - CLI smoke run (`python run_pipeline.py`) against test-safe inputs
+  - [x] CLI smoke run (`python run_pipeline.py`) against test-safe inputs
   - Web API health/startup check
 - [ ] Write a short "how to use this project" guide with a working example:
   - Show exactly what good input data looks like in the workbook.
   - Show expected output for a clean run.
   - Note that incomplete or inconsistent data won't break generation but may slow down downstream proposal work.
-- [ ] Keep quality gates lightweight — the goal is catching broken setup, not enforcing data perfection.
+- [ ] Keep quality gates lightweight - the goal is catching broken setup, not enforcing data perfection.
 
-## 10. Phase 4: Packaging and Operational Runbooks
-- [ ] Add convenience run scripts:
-  - `scripts/run_cli.ps1`
-  - `scripts/run_web.ps1`
+## 11. Phase 4: Packaging and Operational Runbooks
+- [x] Add convenience run scripts:
+  - [x] `scripts/run_cli.ps1`
+  - [x] `scripts/run_web.ps1`
 - [ ] Document operational runbooks in `/docs` (or README sections):
   - standard start/stop
   - common failures and fixes
@@ -131,7 +167,7 @@ Release is allowed only if all are true:
 - [ ] Define versioning approach (simple release tags recommended, e.g. `v0.4.0`).
   - Tags must be created before deployment day, not during.
 
-## 11. Phase 5: Deployment and Rollback
+## 12. Phase 5: Deployment and Rollback
 Rollback means: if something breaks after a release, you revert to the previous working version (git tag) and re-run from there. Steps below.
 
 - [ ] Deployment checklist (release day):
@@ -145,7 +181,7 @@ Rollback means: if something breaks after a release, you revert to the previous 
   - confirm restored service before continuing
 - [ ] Test the rollback procedure once in a dry run before the first real release.
 
-## 12. Demo Readiness
+## 13. Demo Readiness
 - [ ] Prepare 2 demo datasets:
   - Golden path (clean workbook data)
   - Edge-case path (messy formatting) with expected caveats
@@ -155,9 +191,10 @@ Rollback means: if something breaks after a release, you revert to the previous 
   - open individual + consolidated outputs in pursuit folder structure (`resume-outputs\individual`, `resume-outputs\consolidated`)
 - [ ] Be explicit about current limitations and manual review expectations for edge cases.
 
-## 13. Ownership and Timeline
+## 14. Ownership and Timeline
 Use this as a suggested working cadence:
 - Week 1:
+  - local-safe guardrails
   - configuration hardening
   - `.env.example`
   - startup validation
@@ -169,14 +206,15 @@ Use this as a suggested working cadence:
   - dry-run deployment + rollback rehearsal
   - demo rehearsal and sign-off
 
-## 14. Immediate Next Actions
-1. Replace all hardcoded paths with `SHARED_DATA_ROOT` and `PURSUITS_ROOT` config keys; add path auto-detection and validation on startup.
-2. Move `data\Blackline Staff Project Database.xlsm` to the shared Staff Resumes folder and switch code/config to read from that copy.
-3. Run a concurrency check with the shared workbook: one proposal-tool run in parallel with multiple staff editing the workbook in desktop Excel.
-4. Decide whether the shared `.xlsm` is viable as the live production data source or whether the tool should consume a separate published `.xlsx` copy.
-5. Reconfigure outputs to pursuit-specific folders (example: `{PURSUITS_ROOT}\HSCPOA HR - 2026047\resume-outputs\{save-state|consolidated|individual}`).
-6. Add `.env.example` plus config validation on startup.
-7. Add `.python-version` and `.nvmrc` files to pin runtime versions.
-8. Create `scripts/setup.ps1`, `scripts/run_cli.ps1`, and `scripts/run_web.ps1`.
-9. Write the "how to use this project" usage guide with a working example.
-10. Run fresh-machine validation with a teammate before the next demo.
+## 15. Immediate Next Actions (Local-Only First)
+1. Add local-safe mode guardrails so any configured path outside repo root is blocked by default.
+2. Replace hardcoded paths with local-first config keys (`LOCAL_DATA_ROOT`, `LOCAL_PURSUITS_ROOT`) and keep defaults inside this repo.
+3. Reconfigure outputs to pursuit-specific repo-local folders (example: `.\pursuits_local\HSCPOA HR - 2026047\resume-outputs\{save-state|consolidated|individual}`).
+4. Add `.env.example` plus startup config validation with clear path-boundary errors.
+5. Add `.python-version` and `.nvmrc` files to pin runtime versions.
+6. Create `scripts/setup.ps1`, `scripts/run_cli.ps1`, and `scripts/run_web.ps1`.
+7. Run CLI + Web smoke tests entirely against repo-local data.
+8. Write the "how to use this project" guide for local-safe operation.
+9. Run fresh-machine validation with a teammate before the next demo.
+10. After local validation passes, execute a separate Promotion Phase to enable/validate shared external paths.
+11. Implement shared global workbook generation in `Staff Resumes\\_generated` with timestamped files, safe promotion to `global_resume_data_latest.xlsx`, and post-success cleanup.

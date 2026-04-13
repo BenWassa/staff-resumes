@@ -11,10 +11,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.data_loader import load_profile
+from src.global_workbook import resolve_workbook_path
 from src.pipeline import run_pipeline
+from src.runtime_config import get_runtime_config
 
-WORKBOOK_PATH = Path(__file__).resolve().parents[2] / "data" / "extraction IPR.xlsx"
-OUTPUTS_ROOT = Path(__file__).resolve().parents[2] / "outputs"
+RUNTIME = get_runtime_config()
+OUTPUTS_ROOT = RUNTIME.outputs_root
 
 
 def _slugify(value: str) -> str:
@@ -56,8 +58,18 @@ def generate(
             - projects (list[str]) ordered project keys
             - education_indices (list[int]) 1-based indices of education entries to include
     """
+    runtime = get_runtime_config()
+    workbook_path = resolve_workbook_path(runtime, refresh_if_configured=False)
     package_slug = _slugify(package_name)
-    output_dir = OUTPUTS_ROOT / package_slug
+    if runtime.use_pursuit_outputs and selected_project_id:
+        output_dir = (
+            runtime.pursuits_root
+            / selected_project_id
+            / runtime.pursuit_output_folder_name
+            / package_slug
+        )
+    else:
+        output_dir = runtime.outputs_root / package_slug
 
     people_config = []
     consolidated_include = [
@@ -71,7 +83,7 @@ def generate(
         project_keys = person.get("projects", [])
         edu_indices = set(person.get("education_indices", []))
 
-        profile = load_profile(str(WORKBOOK_PATH), name)
+        profile = load_profile(str(workbook_path), name)
         all_education = profile.get("education", [])
         if edu_indices:
             filtered_education = [

@@ -33,11 +33,11 @@ Those archived folders are not part of the day-to-day generation path.
 
 ### CLI flow
 
-The CLI uses fixed root-level inputs:
+The CLI now reads paths from runtime config (`.env` with repo-local defaults in `.env.example`):
 
-- workbook: `data/extraction IPR.xlsx`
-- selections config: `data/selections.yaml`
-- template: `templates/Proposal Resume Template.dotx`
+- workbook: `WORKBOOK_PATH` (or generated `global_resume_data_latest.xlsx` when global mode is enabled)
+- selections config: `SELECTIONS_PATH`
+- template folder: `TEMPLATES_DIR`
 
 Run it with:
 
@@ -106,7 +106,7 @@ proposal-tool-resumes/
 
 ### Workbook
 
-`data/extraction IPR.xlsx` is the main source of truth.
+`WORKBOOK_PATH` is the active workbook source. In shared mode, the source is built from `PERSON_WORKBOOKS_DIR` into `GLOBAL_WORKBOOK_DIR`.
 
 Expected workbook patterns:
 
@@ -200,6 +200,16 @@ cd web
 npm install
 ```
 
+### Runtime configuration
+
+Copy `.env.example` to `.env` and set values for your environment.
+
+Important flags:
+
+- `ALLOW_EXTERNAL_PATHS=false` keeps all resolved paths inside this repo.
+- `ALLOW_EXTERNAL_PATHS=true` allows shared-folder locations.
+- `REFRESH_GLOBAL_WORKBOOK_ON_RUN=true` rebuilds `global_resume_data_latest.xlsx` from `PERSON_WORKBOOKS_DIR` before each pipeline run.
+
 ## Running
 
 ### CLI
@@ -233,26 +243,21 @@ The consolidated document is built by merging generated resumes directly in `src
 ## Important Implementation Notes
 
 - `Benjamin Haddon` maps to workbook sheets named `Ben Haddon_*` through `PERSON_SHEET_ALIASES`.
-- The pipeline uses fixed root paths in `src/pipeline.py` for the workbook, templates, and default outputs.
+- Path resolution is centralized in `src/runtime_config.py`.
 - The web layer does not write `selections.yaml`; it constructs the config in memory and passes it to `run_pipeline()`.
 - Education supplied explicitly by the web payload takes precedence over profile-sheet education.
 - Project selection is strict: if a configured `Project Key` is missing from the workbook, the run fails.
+- Shared global workbook generation is implemented in `src/global_workbook.py` with timestamped files, `*_latest.xlsx` promotion, and cleanup of older artifacts.
 
 ## Known Environment Coupling
 
-Some web and date-enrichment features depend on absolute local paths outside this repo, including:
-
-- the portfolio index JSON used by `/api/projects`
-- the master client references workbook used for date lookup and match review
-
-That means the core CLI pipeline is portable inside this repo, but the full UI/data-enrichment experience still assumes the current local Blackline directory layout.
+External shared-folder mode requires explicit environment configuration and `ALLOW_EXTERNAL_PATHS=true`.
 
 ## Next Useful Improvements
 
-- move from fixed root-level inputs to project-specific job folders
-- make workbook/template/output paths configurable from the CLI
-- replace absolute external paths with environment configuration
-- document or automate the project-date review workflow end to end
+- expand tests for config/path policy and shared-workbook generation
+- finalize pursuit-folder output mode across all save-state endpoints
+- document the project-date review workflow end to end
 
 ## More Detail
 

@@ -8,9 +8,13 @@ from pathlib import Path
 
 import pandas as pd
 
-MASTER_PROJECT_LIST_PATH = Path(
-    r"C:\Users\ben.haddon\OneDrive - Blackline Consulting\Pursuits - Documents\_Proposal Objects\References\Client References-2026.xlsx"
-)
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from src.runtime_config import get_runtime_config
+
+MASTER_PROJECT_LIST_PATH = get_runtime_config().master_references_path
 
 ENGAGEMENT_NUMBER_COLUMN = "Engagement #"
 START_DATE_COLUMN = "Start Date"

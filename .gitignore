@@ -8,6 +8,8 @@
 /_archive
 /_extraction_archive
 /data/
+.env
+web/.env
 __pycache__/
 *.pyc
 *.pyo

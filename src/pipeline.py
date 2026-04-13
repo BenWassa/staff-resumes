@@ -6,13 +6,10 @@ from typing import Callable
 from src.config_loader import load_config
 from src.data_loader import load_profile, load_projects
 from src.formatter import format_projects
+from src.global_workbook import resolve_workbook_path
+from src.runtime_config import get_runtime_config
 from src.selector import select_projects
 from src.word_writer import write_consolidated_resume, write_individual_resume
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-TEMPLATES_DIR = BASE_DIR / "templates"
-OUTPUTS_DIR = BASE_DIR / "outputs"
 
 
 def _normalize_package_context(config: dict) -> dict:
@@ -43,11 +40,13 @@ def run_pipeline(
     Returns:
         Metadata about the generated outputs.
     """
-    excel_path = DATA_DIR / "extraction IPR.xlsx"
-    individual_template = TEMPLATES_DIR / "Proposal Resume Template.dotx"
-    cover_page_template = TEMPLATES_DIR / "cover_page.docx"
-    end_page_template = TEMPLATES_DIR / "end_page.docx"
-    out_dir = Path(output_dir) if output_dir else OUTPUTS_DIR
+    runtime = get_runtime_config()
+    excel_path = resolve_workbook_path(runtime, refresh_if_configured=True)
+
+    individual_template = runtime.templates_dir / "Proposal Resume Template.dotx"
+    cover_page_template = runtime.templates_dir / "cover_page.docx"
+    end_page_template = runtime.templates_dir / "end_page.docx"
+    out_dir = Path(output_dir) if output_dir else runtime.outputs_root
 
     if selections_override is not None:
         config = selections_override
@@ -56,7 +55,7 @@ def run_pipeline(
         config["consolidated"].setdefault("include", [])
         config["package_context"] = _normalize_package_context(config)
     else:
-        config_path = DATA_DIR / "selections.yaml"
+        config_path = runtime.selections_path
         config = load_config(config_path)
 
     package_context = _normalize_package_context(config)

@@ -17,24 +17,16 @@ from pathlib import Path
 import pandas as pd
 
 from src.data_loader import PERSON_SHEET_ALIASES, load_projects
+from src.runtime_config import get_runtime_config
+
+RUNTIME = get_runtime_config()
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-WORKBOOK_PATH = Path(__file__).resolve().parent.parent / "data" / "extraction IPR.xlsx"
-
-MASTER_REFERENCES_PATH = Path(
-    r"C:\Users\ben.haddon\OneDrive - Blackline Consulting"
-    r"\Pursuits - Documents\_Proposal Objects\References"
-    r"\Client References-2026.xlsx"
-)
-
-OVERRIDES_PATH = (
-    Path(__file__).resolve().parent.parent / "data" / "project_date_overrides.csv"
-)
-
-REVIEW_OUTPUT_PATH = (
-    Path(__file__).resolve().parent.parent / "outputs" / "project_date_matches.csv"
-)
+WORKBOOK_PATH = RUNTIME.workbook_path
+MASTER_REFERENCES_PATH = RUNTIME.master_references_path
+OVERRIDES_PATH = RUNTIME.data_dir / "project_date_overrides.csv"
+REVIEW_OUTPUT_PATH = RUNTIME.outputs_root / "project_date_matches.csv"
 
 # ── Master workbook column names ──────────────────────────────────────────────
 

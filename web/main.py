@@ -11,23 +11,21 @@ from pathlib import Path
 
 import yaml
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from api.project_dates import extract_engagement_number, load_master_project_dates
-from api.workbook import get_person_data, list_people
-from api.runner import generate, OUTPUTS_ROOT
+from web.api.project_dates import extract_engagement_number, load_master_project_dates
+from web.api.workbook import get_person_data, list_people
+from web.api.runner import generate, OUTPUTS_ROOT
+from src.runtime_config import get_runtime_config
 
 app = FastAPI(title="Resume Generator API")
 JOB_LOCK = threading.Lock()
 
-PURSUITS_ROOT = Path(
-    r"C:\Users\ben.haddon\OneDrive - Blackline Consulting\Pursuits - Documents"
-)
+RUNTIME = get_runtime_config()
+PURSUITS_ROOT = RUNTIME.pursuits_root
 
 JOBS: dict[str, dict] = {}
 
@@ -384,9 +382,7 @@ def api_generate_status(job_id: str):
 
 # ── YAML import endpoint ───────────────────────────────────────────────────────
 
-YAML_TEMPLATE_PATH = (
-    Path(__file__).resolve().parents[1] / "data" / "selections.template.yaml"
-)
+YAML_TEMPLATE_PATH = RUNTIME.yaml_template_path
 
 
 @app.get("/api/yaml-template")
