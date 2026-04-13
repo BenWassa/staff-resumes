@@ -2,7 +2,9 @@ param(
     [ValidateSet("release", "dev", "unpackaged")]
     [string]$Mode = "release",
     [bool]$ClearNsisCache = $true,
-    [switch]$RunPortable
+    [switch]$RunPortable,
+    [switch]$RunSetup,
+    [bool]$CreateDesktopShortcut = $true
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,6 +15,7 @@ $webRoot = Join-Path $repoRoot "web"
 $releaseScript = Join-Path $PSScriptRoot "build_release.ps1"
 $portableExe = Join-Path $webRoot "release\Resume Generator 0.1.0.exe"
 $venvPython = Join-Path $repoRoot "web\venv\Scripts\python.exe"
+$releaseDir = Join-Path $webRoot "release"
 
 function Test-CommandExists {
     param([string]$Command)
@@ -87,6 +90,22 @@ switch ($Mode) {
         Write-Host "Building release artifacts..." -ForegroundColor Cyan
         & $releaseScript -ClearNsisCache:$ClearNsisCache
         Assert-Success -ExitCode $LASTEXITCODE -StepName "build_release.ps1"
+        if ($RunSetup) {
+            $setupExe = Get-ChildItem -Path $releaseDir -Filter "Resume Generator Setup *.exe" -File |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -First 1
+            if (-not $setupExe) {
+                throw "Setup installer not found in $releaseDir"
+            }
+
+            $setupArgs = @()
+            if (-not $CreateDesktopShortcut) {
+                $setupArgs += "--no-desktop-shortcut"
+            }
+
+            Write-Host "Launching setup installer..." -ForegroundColor Cyan
+            Start-Process -FilePath $setupExe.FullName -ArgumentList $setupArgs | Out-Null
+        }
         if ($RunPortable) {
             if (-not (Test-Path $portableExe)) {
                 throw "Portable executable not found at $portableExe"
