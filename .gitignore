@@ -6,7 +6,13 @@ service-account*.json
 *-service-account.json
 
 # Firebase local config
+.env
+.env.*
+!.env.example
+web/.env
 web/.env.local
+web/.env.*
+!web/.env.example
 web/.env.production
 /node_modules
 /web/node_modules/
@@ -16,8 +22,6 @@ web/.env.production
 /_archive
 /_extraction_archive
 /data/
-.env
-web/.env
 __pycache__/
 *.pyc
 *.pyo
@@ -25,3 +29,4 @@ __pycache__/
 web/dist/
 web/release/
 web/_pytest_cache/
+
