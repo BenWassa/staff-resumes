@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+
+# Node / frontend (frontend is pre-built separately and deployed to Firebase Hosting)
+web/node_modules/
+web/dist/
+web/src/
+web/*.config.*
+web/package*.json
+web/.env*
+web/index.html
+web/tailwind.config.js
+web/postcss.config.js
+
+# Dev/local files
+.env
+outputs/
+data/
+scripts/
+*.md
+.git/
+.gitignore
+.firebaserc
+firebase.json
+firestore.rules
+firestore.indexes.json
+storage.rules
+Dockerfile
+.dockerignore
+service-account*.json

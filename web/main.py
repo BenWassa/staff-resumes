@@ -1,57 +1,58 @@
-"""FastAPI backend for the Resume Generation UI."""
+"""FastAPI backend for the Resume Generator web app."""
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 import threading
 import uuid
 from pathlib import Path
 
-import yaml
-
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, Response
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from web.api.project_dates import extract_engagement_number, load_master_project_dates
-from web.api.workbook import get_person_data, list_people
-from web.api.runner import generate, OUTPUTS_ROOT
-from web.api.config_store import extract_pursuits_root, get_pursuits_root, save_config
-from src.runtime_config import get_runtime_config
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from web.api.firebase_admin_init import initialize
+from web.api.auth import require_admin, verify_token
+from web.api.firestore_store import get_person_data, list_people
+from web.api.runner import generate
 
 app = FastAPI(title="Resume Generator API")
 JOB_LOCK = threading.Lock()
-
-RUNTIME = get_runtime_config()
-
-
-def _get_pursuits_root() -> Path | None:
-    """Return pursuits root: config store takes precedence over runtime env."""
-    stored = get_pursuits_root()
-    if stored:
-        return stored
-    rt_path = RUNTIME.pursuits_root
-    if rt_path.exists():
-        return rt_path
-    return None
-
 JOBS: dict[str, dict] = {}
 
+# ── CORS ───────────────────────────────────────────────────────────────────────
+
+_ALLOWED_ORIGINS_ENV = os.environ.get("ALLOWED_ORIGINS", "")
+_DEFAULT_DEV_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+]
+
+allowed_origins = (
+    [o.strip() for o in _ALLOWED_ORIGINS_ENV.split(",") if o.strip()]
+    if _ALLOWED_ORIGINS_ENV
+    else _DEFAULT_DEV_ORIGINS
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── App startup ─────────────────────────────────────────────────────────────────
+
+
+@app.on_event("startup")
+def on_startup():
+    initialize()
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
@@ -77,55 +78,22 @@ class GenerateStartResponse(BaseModel):
     job_id: str
 
 
-class SaveStatePayload(BaseModel):
-    schema_version: int = 1
-    saved_at: str
+class PursuitCreate(BaseModel):
+    display_name: str
+    client: str
+    engagement_number: str = ""
+
+
+class SessionPayload(BaseModel):
+    pursuit_id: str
     package_name: str
-    selected_project_id: str | None = None
-    include_package_pages: bool = True
-    selected_names: list[str]
-    selections: dict[str, dict]
+    selected_staff_ids: list[str] = []
+    selections: dict = {}
+    include_cover: bool = True
+    include_end_page: bool = False
 
 
-class SaveSummary(BaseModel):
-    slug: str
-    package_name: str
-    saved_at: str
-    selected_names: list[str]
-    selected_project_id: str | None = None
-
-
-class OutputsExistResponse(BaseModel):
-    exists: bool
-    individual_count: int
-    consolidated_exists: bool
-
-
-def _save_payload_to_yaml_document(save_payload: dict) -> str:
-    selected_names = save_payload.get("selected_names") or []
-    selections = save_payload.get("selections") or {}
-
-    people = []
-    for name in selected_names:
-        selection = selections.get(name) or {}
-        projects = selection.get("projects") or []
-        people.append(
-            {
-                "name": name,
-                "projects": [
-                    {"key": project_key, "order": index}
-                    for index, project_key in enumerate(projects, start=1)
-                ],
-            }
-        )
-
-    document = {
-        "people": people,
-        "consolidated": {
-            "include": selected_names,
-        },
-    }
-    return yaml.safe_dump(document, sort_keys=False, allow_unicode=True)
+# ── Job helpers ────────────────────────────────────────────────────────────────
 
 
 def _job_percent(completed_steps: int, total_steps: int) -> int:
@@ -142,110 +110,75 @@ def _store_job(job_id: str, updates: dict) -> None:
 
 
 def _expected_total_steps(body: GenerateRequest) -> int:
-    has_consolidated = any(person.include_in_consolidated for person in body.people)
+    has_consolidated = any(p.include_in_consolidated for p in body.people)
     return len(body.people) + (1 if has_consolidated else 0)
 
 
 def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
+    total_steps = _expected_total_steps(body)
+
     def on_progress(event: dict) -> None:
         event_type = event.get("event")
         completed_steps = event.get("completed_steps", 0)
-        total_steps = event.get("total_steps", _expected_total_steps(body))
 
         if event_type == "started":
-            _store_job(
-                job_id,
-                {
-                    "status": "running",
-                    "message": "Preparing resume generation",
-                    "completed_steps": completed_steps,
-                    "total_steps": total_steps,
-                    "percent": _job_percent(completed_steps, total_steps),
-                    "current_step": None,
-                    "current_output_path": None,
-                    "output_dir": event.get("output_dir"),
-                },
-            )
+            _store_job(job_id, {
+                "status": "running",
+                "message": "Preparing resume generation",
+                "completed_steps": completed_steps,
+                "total_steps": total_steps,
+                "percent": _job_percent(completed_steps, total_steps),
+                "current_step": None,
+            })
             return
 
         if event_type in {"step_started", "step_completed"}:
             step_history = None
             if event_type == "step_completed":
                 with JOB_LOCK:
-                    existing_history = list(
-                        JOBS.get(job_id, {}).get("step_history", [])
-                    )
-                existing_history.append(
-                    {
-                        "type": event.get("step_type"),
-                        "person_name": event.get("person_name"),
-                        "label": event.get("label"),
-                        "output_path": event.get("output_path"),
-                    }
-                )
-                step_history = existing_history
-            _store_job(
-                job_id,
-                {
-                    "status": "running",
-                    "message": event.get("label") or "Generating resumes",
-                    "completed_steps": completed_steps,
-                    "total_steps": total_steps,
-                    "percent": _job_percent(completed_steps, total_steps),
-                    "current_step": {
-                        "type": event.get("step_type"),
-                        "person_name": event.get("person_name"),
-                        "label": event.get("label"),
-                        "status": (
-                            "completed" if event_type == "step_completed" else "running"
-                        ),
-                    },
-                    "current_output_path": event.get("output_path"),
-                    **(
-                        {"step_history": step_history}
-                        if step_history is not None
-                        else {}
-                    ),
+                    existing = list(JOBS.get(job_id, {}).get("step_history", []))
+                existing.append({
+                    "type": event.get("step_type"),
+                    "person_name": event.get("person_name"),
+                    "label": event.get("label"),
+                })
+                step_history = existing
+            updates = {
+                "status": "running",
+                "message": event.get("label") or "Generating resumes",
+                "completed_steps": completed_steps,
+                "total_steps": total_steps,
+                "percent": _job_percent(completed_steps, total_steps),
+                "current_step": {
+                    "type": event.get("step_type"),
+                    "person_name": event.get("person_name"),
+                    "label": event.get("label"),
+                    "status": "completed" if event_type == "step_completed" else "running",
                 },
-            )
+            }
+            if step_history is not None:
+                updates["step_history"] = step_history
+            _store_job(job_id, updates)
             return
 
         if event_type == "completed":
             counts = event.get("counts", {})
-            individual_count = counts.get("individual", 0)
-            consolidated_count = counts.get("consolidated", 0)
-            output_dir = event.get("output_dir")
-            summary_parts = []
-            if consolidated_count:
-                summary_parts.append("consolidated resume")
-            summary_parts.append(
-                f"{individual_count} individual resume{'s' if individual_count != 1 else ''}"
-            )
-            summary = f"Outputted {', and '.join(summary_parts)} at {output_dir}"
-            _store_job(
-                job_id,
-                {
-                    "status": "completed",
-                    "message": summary,
-                    "completed_steps": event.get("completed_steps", total_steps),
-                    "total_steps": event.get("total_steps", total_steps),
-                    "percent": 100,
-                    "current_step": {
-                        "type": "completed",
-                        "label": "Generation complete",
-                        "status": "completed",
-                    },
-                    "current_output_path": event.get("consolidated_path") or output_dir,
-                    "output_dir": output_dir,
-                    "output_paths": event.get("output_paths", []),
-                    "individual_paths": event.get("individual_paths", []),
-                    "consolidated_path": event.get("consolidated_path"),
-                    "counts": counts,
-                },
-            )
+            individual_urls = event.get("individual_urls", {})
+            consolidated_url = event.get("consolidated_url")
+            _store_job(job_id, {
+                "status": "completed",
+                "message": "Generation complete",
+                "completed_steps": total_steps,
+                "total_steps": total_steps,
+                "percent": 100,
+                "counts": counts,
+                "individual_urls": individual_urls,
+                "consolidated_url": consolidated_url,
+            })
 
     try:
         result = generate(
+            job_id=job_id,
             package_name=body.package_name,
             selected_project_id=body.selected_project_id,
             include_cover=body.include_cover,
@@ -253,210 +186,52 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
             people=[p.model_dump() for p in body.people],
             progress_callback=on_progress,
         )
-        # Always signal completion if the pipeline finished without its own callback
         on_progress({"event": "completed", **result})
     except Exception as exc:
-        _store_job(
-            job_id,
-            {
-                "status": "failed",
-                "message": str(exc),
-                "error": str(exc),
-            },
-        )
+        _store_job(job_id, {
+            "status": "failed",
+            "message": str(exc),
+            "error": str(exc),
+        })
 
 
-# ── Path security ──────────────────────────────────────────────────────────────
-
-
-def _resolve_project_path(project_id: str) -> Path:
-    """Return the absolute path for a project folder, enforcing pursuits root containment.
-
-    Raises HTTPException 400 on traversal attempts or if pursuits root is not configured.
-    Raises HTTPException 404 if the resolved folder does not exist.
-    """
-    pursuits_root = _get_pursuits_root()
-    if pursuits_root is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Pursuits folder is not configured. Complete onboarding first.",
-        )
-
-    # Reject anything that looks like an absolute path or contains traversal sequences
-    if Path(project_id).is_absolute() or ".." in Path(project_id).parts:
-        raise HTTPException(status_code=400, detail="Invalid project identifier.")
-
-    resolved = (pursuits_root / project_id).resolve()
-
-    # Must be strictly inside pursuits_root (not equal to it)
-    try:
-        resolved.relative_to(pursuits_root.resolve())
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid project identifier.")
-
-    if resolved == pursuits_root.resolve():
-        raise HTTPException(status_code=400, detail="Invalid project identifier.")
-
-    # Guard against symlink escapes
-    if resolved.is_symlink():
-        raise HTTPException(status_code=400, detail="Invalid project identifier.")
-
-    if not resolved.exists():
-        raise HTTPException(status_code=404, detail=f"Project folder not found: {project_id}")
-
-    return resolved
-
-
-# ── Endpoints ──────────────────────────────────────────────────────────────────
-
-
-# ── Onboarding ─────────────────────────────────────────────────────────────────
-
-
-class OnboardingConfigRequest(BaseModel):
-    picked_path: str
-    dry_run: bool = False
-
-
-@app.get("/api/onboarding/status")
-def api_onboarding_status():
-    """Return whether onboarding is complete and the current pursuits root if set."""
-    pursuits_root = _get_pursuits_root()
-    if pursuits_root is None:
-        return {"configured": False, "pursuits_root": None}
-    return {"configured": True, "pursuits_root": str(pursuits_root)}
-
-
-@app.post("/api/onboarding/config")
-def api_onboarding_config(body: OnboardingConfigRequest):
-    """Accept a user-picked path, extract the pursuits root, and optionally persist it.
-
-    Accepts the root itself or a project subfolder one level deep.
-    When dry_run=true, resolves and validates without saving (used for preview).
-    Returns the resolved pursuits_root on success.
-    """
-    extracted = extract_pursuits_root(body.picked_path)
-    if extracted is None:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "Could not identify a Pursuits folder at that location. "
-                "Please select the folder that contains your project folders "
-                "(e.g. 'Client Name - 2025024')."
-            ),
-        )
-    if not body.dry_run:
-        save_config({"pursuits_root": str(extracted)})
-    return {"pursuits_root": str(extracted)}
+# ── People endpoints ───────────────────────────────────────────────────────────
 
 
 @app.get("/api/people")
-def api_list_people():
+def api_list_people(token: dict = Depends(verify_token)):
     try:
         return list_people()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-def extract_short_client(client_name):
-    if not client_name:
-        return ""
-    # Look for patterns like "Full Name (ACRONYM)" or "Full Name [ACRONYM]"
-    import re
-
-    match = re.search(r"\(([^)]+)\)", client_name)
-    if not match:
-        match = re.search(r"\[([^\]]+)\]", client_name)
-    if match:
-        return match.group(1).strip()
-    return client_name
-
-
-def scan_pursuits_folder():
-    """Scan the configured Pursuits folder to find project subfolders."""
-    projects = []
-    pursuits_root = _get_pursuits_root()
-    if pursuits_root is None or not pursuits_root.exists():
-        return projects
-
-    # Pattern: Client Name - YYYYNNN (e.g. Anaheim - 2026049)
-    # We want everything before the " - "
-    for path in pursuits_root.iterdir():
-        if not path.is_dir() or path.name.lower().startswith("_"):
-            continue
-
-        folder_name = path.name
-        if " - " in folder_name:
-            client_part = folder_name.split(" - ")[0].strip()
-            engagement_number = folder_name.split(" - ")[-1].strip()
-        else:
-            client_part = folder_name
-            engagement_number = ""
-
-        projects.append(
-            {
-                "project_id": folder_name,
-                "name": folder_name,
-                "folder_name": folder_name,
-                "display_name": (
-                    f"{client_part} ({engagement_number})"
-                    if engagement_number
-                    else client_part
-                ),
-                "client": client_part,
-                "short_client": client_part,  # Use the trimmed name as shortform
-                "engagement_type": "",  # Type unknown from folder name
-                "engagement_number": engagement_number,
-                "project_type": "pursuit",
-                "stage": "Proposal",
-                "lifecycle_status": "active",
-                "source": "pursuits_folder",
-            }
-        )
-    return projects
-
-
-@app.get("/api/projects")
-def api_list_projects():
-    try:
-        # 1. Get projects discovered from the Pursuits folder
-        projects = scan_pursuits_folder()
-
-        def sort_key(project: dict) -> str:
-            return project["display_name"].casefold()
-
-        return sorted(projects, key=sort_key)
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-
 @app.get("/api/people/{name}/data")
-def api_person_data(name: str):
+def api_person_data(name: str, token: dict = Depends(verify_token)):
     try:
         return get_person_data(name)
     except Exception as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+# ── Generation endpoints ───────────────────────────────────────────────────────
+
+
 @app.post("/api/generate")
-def api_generate(body: GenerateRequest) -> GenerateStartResponse:
+def api_generate(body: GenerateRequest, token: dict = Depends(verify_token)) -> GenerateStartResponse:
     job_id = uuid.uuid4().hex
     total_steps = _expected_total_steps(body)
-    _store_job(
-        job_id,
-        {
-            "status": "queued",
-            "message": "Queued resume generation",
-            "completed_steps": 0,
-            "total_steps": total_steps,
-            "percent": 0,
-            "output_paths": [],
-            "individual_paths": [],
-            "consolidated_path": None,
-            "counts": {"individual": 0, "consolidated": 0, "total": 0},
-            "step_history": [],
-        },
-    )
+    _store_job(job_id, {
+        "status": "queued",
+        "message": "Queued",
+        "completed_steps": 0,
+        "total_steps": total_steps,
+        "percent": 0,
+        "individual_urls": {},
+        "consolidated_url": None,
+        "counts": {"individual": 0, "consolidated": 0, "total": 0},
+        "step_history": [],
+    })
     worker = threading.Thread(
         target=_run_generation_job, args=(job_id, body), daemon=True
     )
@@ -465,280 +240,89 @@ def api_generate(body: GenerateRequest) -> GenerateStartResponse:
 
 
 @app.get("/api/generate/{job_id}")
-def api_generate_status(job_id: str):
+def api_generate_status(job_id: str, token: dict = Depends(verify_token)):
     with JOB_LOCK:
         job = JOBS.get(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Generation job not found.")
+        raise HTTPException(status_code=404, detail="Job not found.")
     return job
 
 
-# ── YAML import endpoint ───────────────────────────────────────────────────────
-
-YAML_TEMPLATE_PATH = RUNTIME.yaml_template_path
+# ── Pursuits endpoints ─────────────────────────────────────────────────────────
 
 
-@app.get("/api/yaml-template")
-def api_yaml_template():
-    """Download the selections.yaml template file."""
-    if not YAML_TEMPLATE_PATH.exists():
-        raise HTTPException(status_code=404, detail="Template file not found.")
-    return FileResponse(
-        path=str(YAML_TEMPLATE_PATH),
-        media_type="text/yaml",
-        filename="selections.template.yaml",
-    )
+@app.get("/api/pursuits")
+def api_list_pursuits(token: dict = Depends(verify_token)):
+    """List all pursuits from Firestore."""
+    from firebase_admin import firestore
+    db = firestore.client()
+    docs = db.collection("pursuits").order_by("display_name").stream()
+    return [{"id": d.id, **d.to_dict()} for d in docs]
 
 
-class YamlImportRequest(BaseModel):
-    content: str  # raw YAML text
+@app.post("/api/pursuits")
+def api_create_pursuit(body: PursuitCreate, token: dict = Depends(require_admin)):
+    """Admin: create a new pursuit entry."""
+    from firebase_admin import firestore
+    import re
+    db = firestore.client()
+    pursuit_id = re.sub(r"[^a-z0-9]+", "-", body.display_name.lower()).strip("-") or uuid.uuid4().hex
+    ref = db.collection("pursuits").document(pursuit_id)
+    ref.set({
+        "display_name": body.display_name,
+        "client": body.client,
+        "engagement_number": body.engagement_number,
+        "created_at": firestore.SERVER_TIMESTAMP,
+    })
+    return {"id": pursuit_id, **body.model_dump()}
 
 
-@app.post("/api/yaml-import")
-def api_yaml_import(body: YamlImportRequest):
-    """Parse submitted YAML and return pre-built person selections."""
-    # ── Parse ────────────────────────────────────────────────────────────────
-    try:
-        doc = yaml.safe_load(body.content) or {}
-    except yaml.YAMLError as exc:
-        raise HTTPException(status_code=422, detail=f"Invalid YAML: {exc}") from exc
-
-    if not isinstance(doc, dict):
-        raise HTTPException(
-            status_code=422, detail="YAML must be a mapping with a 'people' key."
-        )
-
-    raw_people = doc.get("people")
-    if not raw_people:
-        raise HTTPException(
-            status_code=422, detail="No 'people' key found (or it is empty)."
-        )
-    if not isinstance(raw_people, list):
-        raise HTTPException(
-            status_code=422, detail="'people' must be a list of entries."
-        )
-
-    # ── Validate structure before hitting workbook ────────────────────────────
-    for i, entry in enumerate(raw_people):
-        if not isinstance(entry, dict):
-            raise HTTPException(
-                status_code=422, detail=f"people[{i}] must be a mapping."
-            )
-        if not entry.get("name"):
-            raise HTTPException(
-                status_code=422, detail=f"people[{i}] is missing a 'name' field."
-            )
-        projects = entry.get("projects")
-        if projects is not None:
-            if not isinstance(projects, list):
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"people[{i}] ('name'): 'projects' must be a list.",
-                )
-            for j, proj in enumerate(projects):
-                if not isinstance(proj, dict) or not proj.get("key"):
-                    raise HTTPException(
-                        status_code=422,
-                        detail=f"people[{i}].projects[{j}]: each project must have a 'key' field.",
-                    )
-
-    # ── Load workbook data ────────────────────────────────────────────────────
-    results = []
-    errors = []
-    for entry in raw_people:
-        name = entry["name"].strip()
-        try:
-            person_data = get_person_data(name)
-        except Exception as exc:
-            errors.append(f"{name}: {exc}")
-            continue
-
-        yaml_project_keys = [
-            p["key"]
-            for p in sorted(
-                entry.get("projects") or [], key=lambda item: item.get("order", 0)
-            )
-        ]
-
-        available_keys = {p["key"] for p in person_data["projects"]}
-        missing_keys = [k for k in yaml_project_keys if k not in available_keys]
-        project_keys = [k for k in yaml_project_keys if k in available_keys]
-
-        if missing_keys:
-            errors.append(
-                f"{name}: project key(s) not found in workbook and skipped: {', '.join(missing_keys)}"
-            )
-
-        edu_count = len(person_data.get("education", []))
-        education_indices = list(range(1, edu_count + 1))
-
-        results.append(
-            {
-                "name": name,
-                "person_data": person_data,
-                "selection": {
-                    "projects": project_keys,
-                    "education_indices": education_indices,
-                },
-            }
-        )
-
-    if not results:
-        detail = "No people could be loaded from the workbook."
-        if errors:
-            detail += " Errors: " + "; ".join(errors)
-        raise HTTPException(status_code=422, detail=detail)
-
-    consolidated_raw = doc.get("consolidated", {})
-    consolidated_names = (consolidated_raw or {}).get("include", [])
-    if not consolidated_names:
-        consolidated_names = [r["name"] for r in results]
-
-    return {
-        "people": results,
-        "consolidated_names": consolidated_names,
-        "errors": errors,
-    }
+# ── Sessions endpoints ─────────────────────────────────────────────────────────
 
 
-# ── Save state endpoints ────────────────────────────────────────────────────────
-#
-# Save state is scoped per project folder.
-# slug = project folder name (e.g. "City of Medicine Hat (AB) - 2025024")
-# save file: <pursuits_root>/<slug>/resume-outputs/save_state.json
-# output dirs: <pursuits_root>/<slug>/resume-outputs/{individual,consolidated}/
+@app.get("/api/sessions")
+def api_list_sessions(token: dict = Depends(verify_token)):
+    """List saved sessions — admins see all, members see their own."""
+    from firebase_admin import firestore
+    db = firestore.client()
+    uid = token["uid"]
 
+    # Check if admin
+    user_doc = db.collection("users").document(uid).get()
+    is_admin = user_doc.exists and user_doc.to_dict().get("role") == "admin"
 
-def _project_outputs_dir(project_id: str) -> Path:
-    """Return the resume-outputs dir for a project, enforcing path security."""
-    project_path = _resolve_project_path(project_id)
-    return project_path / "resume-outputs"
-
-
-@app.get("/api/saves", response_model=list[SaveSummary])
-def api_list_saves():
-    """Aggregate save_state.json files from all project folders in pursuits root."""
-    saves = []
-    pursuits_root = _get_pursuits_root()
-    if pursuits_root is None or not pursuits_root.exists():
-        return saves
-
-    for project_dir in pursuits_root.iterdir():
-        if not project_dir.is_dir() or project_dir.name.startswith("_"):
-            continue
-        save_file = project_dir / "resume-outputs" / "save_state.json"
-        if not save_file.exists():
-            continue
-        try:
-            data = json.loads(save_file.read_text(encoding="utf-8"))
-            saves.append(
-                SaveSummary(
-                    slug=project_dir.name,
-                    package_name=data.get("package_name", project_dir.name),
-                    saved_at=data.get("saved_at", ""),
-                    selected_names=data.get("selected_names", []),
-                    selected_project_id=data.get("selected_project_id", project_dir.name),
-                )
-            )
-        except Exception:
-            continue
-
-    saves.sort(key=lambda s: s.saved_at, reverse=True)
-    return saves
-
-
-@app.get("/api/saves/{slug:path}", response_model=SaveStatePayload)
-def api_get_save(slug: str):
-    save_file = _project_outputs_dir(slug) / "save_state.json"
-    if not save_file.exists():
-        raise HTTPException(
-            status_code=404, detail="No save state found for this project."
-        )
-    try:
-        return json.loads(save_file.read_text(encoding="utf-8"))
-    except Exception as exc:
-        raise HTTPException(
-            status_code=422, detail=f"Save file is corrupted: {exc}"
-        ) from exc
-
-
-@app.get("/api/saves/{slug:path}/yaml")
-def api_export_save_yaml(slug: str):
-    save_file = _project_outputs_dir(slug) / "save_state.json"
-    if not save_file.exists():
-        raise HTTPException(
-            status_code=404, detail="No save state found for this project."
-        )
-    try:
-        save_payload = json.loads(save_file.read_text(encoding="utf-8"))
-    except Exception as exc:
-        raise HTTPException(
-            status_code=422, detail=f"Save file is corrupted: {exc}"
-        ) from exc
-
-    yaml_content = _save_payload_to_yaml_document(save_payload)
-    return Response(
-        content=yaml_content,
-        media_type="text/yaml",
-        headers={
-            "Content-Disposition": f'attachment; filename="{slug}.selections.yaml"',
-        },
-    )
-
-
-@app.post("/api/saves/{slug:path}")
-def api_save_state(slug: str, body: SaveStatePayload):
-    outputs_dir = _project_outputs_dir(slug)
-    outputs_dir.mkdir(parents=True, exist_ok=True)
-    save_file = outputs_dir / "save_state.json"
-    try:
-        save_file.write_text(
-            json.dumps(body.model_dump(), indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
-    except OSError as exc:
-        # OneDrive/SharePoint may lock the file transiently; surface a clear message.
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                f"Could not write save state (the file may be locked by OneDrive): {exc}. "
-                "Your resumes are already saved. Try again in a moment."
-            ),
-        ) from exc
-    return {"ok": True}
-
-
-@app.get("/api/saves/{slug:path}/outputs_exist", response_model=OutputsExistResponse)
-def api_outputs_exist(slug: str):
-    outputs_dir = _project_outputs_dir(slug)
-    individual_dir = outputs_dir / "individual"
-    consolidated_dir = outputs_dir / "consolidated"
-    individual_count = (
-        len(list(individual_dir.glob("*.docx"))) if individual_dir.exists() else 0
-    )
-    consolidated_exists = (
-        (consolidated_dir / "consolidated_resume.docx").exists()
-        if consolidated_dir.exists()
-        else False
-    )
-    return OutputsExistResponse(
-        exists=individual_count > 0 or consolidated_exists,
-        individual_count=individual_count,
-        consolidated_exists=consolidated_exists,
-    )
-
-
-@app.get("/api/saves/{slug:path}/open_folder")
-def api_open_output_folder(slug: str):
-    import subprocess
-
-    outputs_dir = _project_outputs_dir(slug)
-    outputs_dir.mkdir(parents=True, exist_ok=True)
-
-    if sys.platform == "win32":
-        os.startfile(outputs_dir)
-    elif sys.platform == "darwin":
-        subprocess.Popen(["open", str(outputs_dir)])
+    if is_admin:
+        docs = db.collection("sessions").order_by("saved_at", direction=firestore.Query.DESCENDING).limit(50).stream()
     else:
-        subprocess.Popen(["xdg-open", str(outputs_dir)])
+        docs = (
+            db.collection("sessions")
+            .where("saved_by", "==", uid)
+            .order_by("saved_at", direction=firestore.Query.DESCENDING)
+            .limit(20)
+            .stream()
+        )
+
+    return [{"id": d.id, **d.to_dict()} for d in docs]
+
+
+@app.get("/api/sessions/{session_id}")
+def api_get_session(session_id: str, token: dict = Depends(verify_token)):
+    from firebase_admin import firestore
+    db = firestore.client()
+    doc = db.collection("sessions").document(session_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    return {"id": doc.id, **doc.to_dict()}
+
+
+@app.post("/api/sessions/{session_id}")
+def api_save_session(session_id: str, body: SessionPayload, token: dict = Depends(verify_token)):
+    from firebase_admin import firestore
+    import datetime
+    db = firestore.client()
+    db.collection("sessions").document(session_id).set({
+        **body.model_dump(),
+        "saved_by": token["uid"],
+        "saved_at": datetime.datetime.utcnow().isoformat(),
+    })
     return {"ok": True}

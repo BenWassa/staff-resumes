@@ -1,6 +1,6 @@
 import {
   CheckCircle2,
-  ExternalLink,
+  Download,
   FileText,
   Loader2,
   RefreshCcw,
@@ -11,6 +11,7 @@ import StepPackage from "./StepPackage";
 import StepPeople from "./StepPeople";
 import StepPersonConfig from "./StepPersonConfig";
 import { slugify } from "../utils/slugify";
+import { apiFetch } from "../utils/apiFetch";
 
 const STEPS = ["package", "people", "configure"];
 const STEP_LABELS = ["Name package", "Select team", "Configure"];
@@ -47,6 +48,7 @@ export default function ResumeModal({ isOpen, onClose }) {
   const [generationJobId, setGenerationJobId] = useState("");
   const [showGenerationSuccess, setShowGenerationSuccess] = useState(false);
   const [saves, setSaves] = useState([]);
+  const [completedJob, setCompletedJob] = useState(null);
   const [error, setError] = useState("");
 
   const stepIndex = STEPS.indexOf(step);
@@ -62,31 +64,42 @@ export default function ResumeModal({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) return;
 
-    fetch("/api/people")
+    apiFetch("/api/people")
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.detail || "Failed to load team members.");
-        }
+        if (!response.ok) throw new Error(data.detail || "Failed to load team members.");
         setAllPeople(data);
       })
       .catch((loadError) => setError(loadError.message));
 
-    fetch("/api/saves")
+    apiFetch("/api/sessions")
       .then(async (response) => {
         if (!response.ok) return;
         const data = await response.json();
-        setSaves(data);
+        // Map sessions to the shape StepPackage expects
+        setSaves(data.map((s) => ({
+          slug: s.id,
+          package_name: s.package_name,
+          saved_at: s.saved_at,
+          selected_names: s.selected_staff_ids || [],
+          selected_project_id: s.pursuit_id,
+        })));
       })
       .catch(() => {});
 
-    fetch("/api/projects")
+    apiFetch("/api/pursuits")
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.detail || "Failed to load projects.");
-        }
-        setAllProjects(data);
+        if (!response.ok) throw new Error(data.detail || "Failed to load pursuits.");
+        // Map pursuits to the shape StepPackage expects
+        setAllProjects(data.map((p) => ({
+          project_id: p.id,
+          name: p.display_name,
+          folder_name: p.display_name,
+          display_name: p.display_name,
+          client: p.client,
+          engagement_number: p.engagement_number || "",
+        })));
       })
       .catch((loadError) => {
         setAllProjects([]);
@@ -108,6 +121,7 @@ export default function ResumeModal({ isOpen, onClose }) {
       setIsGenerating(false);
       setGenerationJobId("");
       setShowGenerationSuccess(false);
+      setCompletedJob(null);
     }
   }, [isOpen]);
 
@@ -116,7 +130,7 @@ export default function ResumeModal({ isOpen, onClose }) {
 
     const pollStatus = async () => {
       try {
-        const response = await fetch(`/api/generate/${generationJobId}`);
+        const response = await apiFetch(`/api/generate/${generationJobId}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -126,6 +140,7 @@ export default function ResumeModal({ isOpen, onClose }) {
         if (data.status === "completed") {
           setIsGenerating(false);
           setShowGenerationSuccess(true);
+          setCompletedJob(data);
           return;
         }
 
@@ -146,15 +161,16 @@ export default function ResumeModal({ isOpen, onClose }) {
   const handleLoadSave = async (slug) => {
     setError("");
     try {
-      const response = await fetch(`/api/saves/${encodeURIComponent(slug)}`);
+      const response = await apiFetch(`/api/sessions/${encodeURIComponent(slug)}`);
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.detail || "Failed to load saved session.");
       }
 
+      const names = data.selected_names || data.selected_staff_ids || [];
       const results = await Promise.allSettled(
-        data.selected_names.map((name) =>
-          fetch(`/api/people/${encodeURIComponent(name)}/data`).then(
+        names.map((name) =>
+          apiFetch(`/api/people/${encodeURIComponent(name)}/data`).then(
             async (r) => {
               const personJson = await r.json();
               if (!r.ok) throw new Error(name);
@@ -169,7 +185,7 @@ export default function ResumeModal({ isOpen, onClose }) {
       const missing = [];
 
       results.forEach((result, index) => {
-        const name = data.selected_names[index];
+        const name = names[index];
         if (result.status === "fulfilled") {
           nextPersonData[name] = result.value;
           validNames.push(name);
@@ -179,7 +195,7 @@ export default function ResumeModal({ isOpen, onClose }) {
       });
 
       setPackageName(data.package_name);
-      setSelectedProjectId(data.selected_project_id || "");
+      setSelectedProjectId(data.pursuit_id || data.selected_project_id || "");
       setIncludePackagePages(data.include_package_pages ?? true);
       setSelectedNames(validNames);
       setSelections(data.selections || {});
@@ -199,17 +215,15 @@ export default function ResumeModal({ isOpen, onClose }) {
 
   const _doSaveAndGenerate = async (slug) => {
     try {
-      await fetch(`/api/saves/${encodeURIComponent(slug)}`, {
+      await apiFetch(`/api/sessions/${encodeURIComponent(slug)}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          schema_version: 1,
-          saved_at: new Date().toISOString(),
+          pursuit_id: selectedProjectId || slug,
           package_name: packageName,
-          selected_project_id: selectedProjectId || null,
-          include_package_pages: includePackagePages,
-          selected_names: selectedNames,
+          selected_staff_ids: selectedNames,
           selections,
+          include_cover: includePackagePages,
+          include_end_page: false,
         }),
       });
     } catch {
@@ -226,13 +240,13 @@ export default function ResumeModal({ isOpen, onClose }) {
         };
       });
 
-      const response = await fetch("/api/generate", {
+      const response = await apiFetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           package_name: packageName,
           selected_project_id: selectedProjectId || null,
-          include_package_pages: includePackagePages,
+          include_cover: includePackagePages,
+          include_end_page: false,
           people,
         }),
       });
@@ -274,7 +288,7 @@ export default function ResumeModal({ isOpen, onClose }) {
         try {
           const results = await Promise.all(
             missing.map((name) =>
-              fetch(`/api/people/${encodeURIComponent(name)}/data`).then(
+              apiFetch(`/api/people/${encodeURIComponent(name)}/data`).then(
                 async (response) => {
                   const data = await response.json();
                   if (!response.ok) {
@@ -443,34 +457,48 @@ export default function ResumeModal({ isOpen, onClose }) {
                   <h3 className="text-2xl font-semibold text-[var(--text-main)]">
                     Resumes Generated Successfully
                   </h3>
-                  <p className="mt-2 text-lg text-[var(--text-muted)]">
-                    Your files are ready in the output directory.
+                  <p className="mt-2 text-base text-[var(--text-muted)]">
+                    Download your files below. Links expire in 1 hour.
                   </p>
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row px-4 w-full justify-center">
-                  <button
-                    className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] bg-[var(--accent-main)] px-8 py-3 text-lg font-semibold text-[var(--accent-text)] shadow-lg transition hover:bg-[var(--accent-hover)]"
-                    onClick={() => {
-                      fetch(
-                        `/api/saves/${encodeURIComponent(slugify(packageName))}/open_folder`,
-                      );
-                    }}
-                    type="button"
-                  >
-                    Open Output Folder
-                    <ExternalLink className="h-5 w-5" />
-                  </button>
-                  <button
-                    className="inline-flex items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-main)] px-8 py-3 text-lg font-medium text-[var(--text-main)] transition hover:bg-[var(--bg-hover)]"
-                    onClick={() => {
-                      setShowGenerationSuccess(false);
-                      setStep("package");
-                    }}
-                    type="button"
-                  >
-                    Generate Another
-                  </button>
+
+                {/* Download links */}
+                <div className="w-full max-w-sm flex flex-col gap-2 px-4">
+                  {completedJob?.consolidated_url && (
+                    <a
+                      href={completedJob.consolidated_url}
+                      download
+                      className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] bg-[var(--accent-main)] px-6 py-3 text-base font-semibold text-[var(--accent-text)] shadow-lg transition hover:bg-[var(--accent-hover)]"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download Consolidated Resume
+                    </a>
+                  )}
+                  {completedJob?.individual_urls &&
+                    Object.entries(completedJob.individual_urls).map(([name, url]) => (
+                      <a
+                        key={name}
+                        href={url}
+                        download
+                        className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-main)] px-6 py-2.5 text-sm font-medium text-[var(--text-main)] transition hover:bg-[var(--bg-hover)]"
+                      >
+                        <Download className="h-4 w-4" />
+                        {name}
+                      </a>
+                    ))}
                 </div>
+
+                <button
+                  className="inline-flex items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-main)] px-8 py-3 text-base font-medium text-[var(--text-main)] transition hover:bg-[var(--bg-hover)]"
+                  onClick={() => {
+                    setShowGenerationSuccess(false);
+                    setCompletedJob(null);
+                    setStep("package");
+                  }}
+                  type="button"
+                >
+                  Generate Another
+                </button>
               </div>
             ) : (
               <>
