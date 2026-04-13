@@ -5,8 +5,6 @@ from pathlib import Path
 
 import openpyxl
 
-GLOBAL_SHEETS = ("README", "Data Dictionary", "HOME")
-
 
 def find_people(sheet_names: list[str]) -> list[str]:
     """Return person names inferred from `{Name}_projects` tabs."""
@@ -23,18 +21,18 @@ def build_person_workbook(
     source_workbook: Path,
     person_name: str,
     output_path: Path,
-    include_global_sheets: tuple[str, ...],
 ) -> None:
-    """Create one workbook containing only global tabs + selected person's tabs."""
+    """Create one workbook containing only selected person's tabs."""
     wb = openpyxl.load_workbook(
         filename=source_workbook,
         data_only=False,
         keep_vba=False,
     )
 
-    keep_sheets = set(include_global_sheets)
-    keep_sheets.add(f"{person_name}_projects")
-    keep_sheets.add(f"{person_name}_profile")
+    keep_sheets = {
+        f"{person_name}_projects",
+        f"{person_name}_profile",
+    }
 
     for sheet_name in list(wb.sheetnames):
         is_key_sheet = sheet_name.endswith("_key")
@@ -49,7 +47,6 @@ def build_person_workbook(
 def export_person_workbooks(
     source_workbook: Path,
     output_dir: Path,
-    include_global_sheets: tuple[str, ...],
 ) -> list[Path]:
     wb = openpyxl.load_workbook(
         filename=source_workbook,
@@ -67,7 +64,6 @@ def export_person_workbooks(
             source_workbook=source_workbook,
             person_name=person_name,
             output_path=output_path,
-            include_global_sheets=include_global_sheets,
         )
         output_paths.append(output_path)
 
@@ -78,7 +74,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Split the Blackline staff workbook into one Excel file per person, "
-            "excluding all *_key sheets."
+            "keeping only each person's *_projects and *_profile sheets."
         )
     )
     parser.add_argument(
@@ -90,7 +86,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("outputs") / "person_workbooks",
+        default=Path("data") / "person_workbooks",
         help="Folder to write per-person .xlsx files.",
     )
     return parser.parse_args()
@@ -107,7 +103,6 @@ def main() -> None:
     output_paths = export_person_workbooks(
         source_workbook=source,
         output_dir=output_dir,
-        include_global_sheets=GLOBAL_SHEETS,
     )
 
     print(f"Created {len(output_paths)} person workbook(s) in {output_dir}")

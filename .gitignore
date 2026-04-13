@@ -7,7 +7,7 @@
 /outputs
 /_archive
 /_extraction_archive
-/data/CSVs/
+/data/
 __pycache__/
 *.pyc
 *.pyo
