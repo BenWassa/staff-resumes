@@ -11,10 +11,16 @@ const isDev = !app.isPackaged;
 const BACKEND_PORT = 8002;
 const BACKEND_HOST = '127.0.0.1';
 const BACKEND_URL = `http://${BACKEND_HOST}:${BACKEND_PORT}`;
+const APP_ID = 'com.blackline.resumegenerator';
 
 let mainWindow;
 let pythonProcess;
 let isQuitting = false;
+
+const getWindowIconPath = () =>
+  isDev
+    ? path.resolve(__dirname, '../public/BLC_nobg.ico')
+    : path.join(process.resourcesPath, 'assets', 'BLC_nobg.ico');
 
 const stopPythonBackend = () => {
   if (!pythonProcess || pythonProcess.killed) {
@@ -83,6 +89,7 @@ const createWindow = () => {
     height: 900,
     minWidth: 1200,
     minHeight: 700,
+    icon: getWindowIconPath(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -90,11 +97,11 @@ const createWindow = () => {
     },
   });
 
-  const startUrl = isDev
-    ? 'http://localhost:5174'
-    : `file://${path.join(__dirname, 'dist/renderer/index.html')}`;
-
-  mainWindow.loadURL(startUrl);
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5174');
+  } else {
+    mainWindow.loadFile(path.join(__dirname, 'dist/renderer/index.html'));
+  }
 
   if (isDev) {
     mainWindow.webContents.openDevTools();
@@ -171,6 +178,7 @@ ipcMain.handle('select-folder', async () => {
 });
 
 app.on('ready', async () => {
+  app.setAppUserModelId(APP_ID);
   startPythonBackend();
   try {
     await waitForBackendReady();
