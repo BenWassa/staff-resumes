@@ -1,34 +1,58 @@
-import { useEffect, useState } from "react";
-import OnboardingScreen from "./components/OnboardingScreen";
-import ResumeModal from "./components/ResumeModal";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import LoginPage from "./pages/LoginPage";
+import ProfilePage from "./pages/ProfilePage";
+import AdminPage from "./pages/AdminPage";
+
+function RootRedirect() {
+  const { user, role, loading } = useAuth();
+  if (loading) return <div className="min-h-screen bg-[var(--bg-main)]" />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={role === "admin" ? "/admin" : "/profile"} replace />;
+}
 
 export default function App() {
-  // null = loading, false = needs onboarding, true = ready
-  const [configured, setConfigured] = useState(null);
-
-  useEffect(() => {
-    fetch("/api/onboarding/status")
-      .then((r) => r.json())
-      .then((data) => setConfigured(data.configured))
-      .catch(() => setConfigured(false));
-  }, []);
-
-  if (configured === null) {
-    // Waiting for backend — blank screen matches app background
-    return <div className="min-h-screen bg-[var(--bg-main)]" />;
-  }
-
-  if (!configured) {
-    return (
-      <OnboardingScreen
-        onComplete={() => setConfigured(true)}
-      />
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[var(--bg-main)]">
-      <ResumeModal isOpen={true} onClose={() => {}} />
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+
+          <Route path="/" element={<RootRedirect />} />
+
+          {/* Member profile editor — members see their own; admins can visit any */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:staffId"
+            element={
+              <ProtectedRoute role="admin">
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin resume generation + staff management */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
