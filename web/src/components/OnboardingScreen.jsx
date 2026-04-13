@@ -85,7 +85,7 @@ export default function OnboardingScreen({ onComplete }) {
         {/* Header */}
         <div className="modal-header-bg px-8 py-6">
           <h1 className="text-xl font-semibold text-[var(--text-header)] tracking-wide uppercase">
-            Resume Generator
+            Staff Resumes
           </h1>
           <p className="text-sm text-[var(--text-header-muted)] mt-1 opacity-70">
             First-time setup

@@ -17,7 +17,7 @@ export default function AdminPage() {
       {/* Minimal top bar */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)]">
         <span className="text-[var(--blc-red)] font-bold tracking-tight font-sans">
-          Blackline <span className="text-[var(--text-muted)] font-normal">Resume Generator</span>
+          Blackline <span className="text-[var(--text-muted)] font-normal">Staff Resumes</span>
         </span>
         <div className="flex items-center gap-4">
           <span className="text-xs text-[var(--text-muted)]">{user?.email}</span>

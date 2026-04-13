@@ -1,4 +1,5 @@
 {
+  "name": "staff-resumes",
   "dependencies": {
     "firebase": "^12.12.0"
   }

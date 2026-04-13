@@ -44,7 +44,7 @@ export default function LoginPage() {
           <span className="text-[var(--blc-red)] font-bold text-2xl tracking-tight font-sans">
             Blackline
           </span>
-          <p className="text-[var(--text-muted)] text-sm mt-1">Resume Generator</p>
+          <p className="text-[var(--text-muted)] text-sm mt-1">Staff Resumes</p>
         </div>
 
         <form

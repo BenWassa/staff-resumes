@@ -1,4 +1,4 @@
-"""FastAPI backend for the Resume Generator web app."""
+"""FastAPI backend for the Staff Resumes web app."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from web.api.auth import require_admin, verify_token
 from web.api.firestore_store import get_person_data, list_people
 from web.api.runner import generate
 
-app = FastAPI(title="Resume Generator API")
+app = FastAPI(title="Staff Resumes API")
 JOB_LOCK = threading.Lock()
 JOBS: dict[str, dict] = {}
 
