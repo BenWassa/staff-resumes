@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, dialog } from 'electron';
 import { spawn } from 'child_process';
 import path from 'path';
+import process from 'node:process';
 import { fileURLToPath } from 'url';
 import isDev from 'electron-is-dev';
 
@@ -9,6 +10,12 @@ const __dirname = path.dirname(__filename);
 
 let mainWindow;
 let pythonProcess;
+const APP_ID = 'com.blackline.resumegenerator';
+
+const getWindowIconPath = () =>
+  isDev
+    ? path.resolve(__dirname, 'public', 'BLC_nobg.ico')
+    : path.join(process.resourcesPath, 'assets', 'BLC_nobg.ico');
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -16,6 +23,7 @@ const createWindow = () => {
     height: 900,
     minWidth: 1200,
     minHeight: 700,
+    icon: getWindowIconPath(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -69,6 +77,7 @@ const startPythonBackend = () => {
 };
 
 app.on('ready', () => {
+  app.setAppUserModelId(APP_ID);
   startPythonBackend();
 
   // Wait a moment for Python to start, then open the window

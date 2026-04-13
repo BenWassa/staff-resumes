@@ -16,6 +16,10 @@ const APP_ID = 'com.blackline.resumegenerator';
 let mainWindow;
 let pythonProcess;
 let isQuitting = false;
+let ownsBackendProcess = false;
+let backendStartupFinished = false;
+let backendStderrBuffer = '';
+let backendStartupErrorMessage = '';
 
 const getWindowIconPath = () =>
   isDev
@@ -23,35 +27,48 @@ const getWindowIconPath = () =>
     : path.join(process.resourcesPath, 'assets', 'BLC_nobg.ico');
 
 const stopPythonBackend = () => {
-  if (!pythonProcess || pythonProcess.killed) {
+  if (!ownsBackendProcess || !pythonProcess || pythonProcess.killed) {
     return;
   }
   pythonProcess.kill();
 };
 
+const canReachBackend = (timeoutMs = 1000) =>
+  new Promise((resolve) => {
+    const request = http.get(`${BACKEND_URL}/api/projects`, (response) => {
+      response.resume();
+      resolve(true);
+    });
+
+    request.on('error', () => {
+      resolve(false);
+    });
+
+    request.setTimeout(timeoutMs, () => {
+      request.destroy();
+      resolve(false);
+    });
+  });
+
 const waitForBackendReady = (timeoutMs = 25000) =>
   new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs;
     const attempt = () => {
-      const request = http.get(`${BACKEND_URL}/api/projects`, (response) => {
-        response.resume();
-        resolve();
-      });
-
-      request.on('error', () => {
+      canReachBackend().then((isReady) => {
+        if (isReady) {
+          resolve();
+          return;
+        }
         if (Date.now() >= deadline) {
           reject(
             new Error(
-              `Backend did not start at ${BACKEND_URL} within ${timeoutMs}ms.`
+              backendStartupErrorMessage ||
+                `Backend did not start at ${BACKEND_URL} within ${timeoutMs}ms.`
             )
           );
           return;
         }
         setTimeout(attempt, 350);
-      });
-
-      request.setTimeout(1000, () => {
-        request.destroy();
       });
     };
 
@@ -117,6 +134,9 @@ const createWindow = () => {
 
 const startPythonBackend = () => {
   const launchConfig = getBackendLaunchConfig();
+  ownsBackendProcess = true;
+  backendStderrBuffer = '';
+  backendStartupErrorMessage = '';
   pythonProcess = spawn(
     'python',
     [
@@ -145,6 +165,7 @@ const startPythonBackend = () => {
   });
 
   pythonProcess.stderr.on('data', (data) => {
+    backendStderrBuffer += data.toString();
     console.error(`Python error: ${data}`);
   });
 
@@ -159,9 +180,23 @@ const startPythonBackend = () => {
     if (isQuitting || code === 0 || code === null) {
       return;
     }
+    const stderr = backendStderrBuffer.trim();
+    const portConflict =
+      stderr.includes('address already in use') ||
+      stderr.includes('Only one usage of each socket address') ||
+      stderr.includes('WinError 10048') ||
+      stderr.includes('Errno 10048');
+    const detailedMessage = portConflict
+      ? `Port ${BACKEND_PORT} is already in use. Close the other Resume Generator/backend process and try again.`
+      : stderr || `Python backend exited unexpectedly (code: ${code}, signal: ${signal ?? 'none'}).`;
+
+    backendStartupErrorMessage = detailedMessage;
+    if (!backendStartupFinished) {
+      return;
+    }
     dialog.showErrorBox(
       'Backend Error',
-      `Python backend exited unexpectedly (code: ${code}, signal: ${signal ?? 'none'}).`
+      detailedMessage
     );
   });
 };
@@ -179,11 +214,15 @@ ipcMain.handle('select-folder', async () => {
 
 app.on('ready', async () => {
   app.setAppUserModelId(APP_ID);
-  startPythonBackend();
   try {
+    if (!(await canReachBackend())) {
+      startPythonBackend();
+    }
     await waitForBackendReady();
+    backendStartupFinished = true;
     createWindow();
   } catch (error) {
+    backendStartupFinished = true;
     dialog.showErrorBox(
       'Startup Error',
       `Resume Generator could not start the backend.\n\n${error.message}`

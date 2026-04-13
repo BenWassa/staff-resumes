@@ -75,8 +75,9 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
+      "createDesktopShortcut": false,
       "createStartMenuShortcut": true,
+      "include": "build/installer.nsh",
       "installerIcon": "../public/BLC_nobg.ico",
       "uninstallerIcon": "../public/BLC_nobg.ico"
     },
