@@ -5,9 +5,9 @@
   "main": "electron-main.js",
   "type": "module",
   "scripts": {
-    "predev": "powershell -Command \"Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*uvicorn main:app*--port 8002*' } | Stop-Process -Force; exit 0\"",
+    "predev": "powershell -Command \"Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*uvicorn web.main:app*--port 8002*' } | Stop-Process -Force; exit 0\"",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:client\"",
-    "dev:api": "python -m uvicorn main:app --app-dir . --reload --port 8002",
+    "dev:api": "python -m uvicorn web.main:app --app-dir .. --reload --port 8002",
     "dev:client": "vite --port 5174",
     "electron": "electron .",
     "electron:dev": "concurrently \"npm run dev:api\" \"wait-on http://localhost:8002 && electron .\"",
@@ -24,7 +24,6 @@
     "concurrently": "^9.2.1",
     "electron": "^30.0.0",
     "electron-builder": "^25.0.0",
-    "electron-is-dev": "^2.0.0",
     "eslint": "^10.2.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -43,7 +42,7 @@
   "build": {
     "appId": "com.blackline.resumegenerator",
     "productName": "Resume Generator",
-    "icon": "../public/dashtext_1.ico",
+    "icon": "../public/BLC_nobg.ico",
     "directories": {
       "output": "release"
     },
@@ -57,7 +56,7 @@
       "requirements.txt"
     ],
     "win": {
-      "icon": "../public/dashtext_1.ico",
+      "icon": "../public/BLC_nobg.ico",
       "signAndEditExecutable": false,
       "target": [
         {
@@ -79,8 +78,30 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "installerIcon": "../public/dashtext_1.ico",
-      "uninstallerIcon": "../public/dashtext_1.ico"
-    }
+      "installerIcon": "../public/BLC_nobg.ico",
+      "uninstallerIcon": "../public/BLC_nobg.ico"
+    },
+    "extraResources": [
+      {
+        "from": "main.py",
+        "to": "python/web/main.py"
+      },
+      {
+        "from": "api",
+        "to": "python/web/api"
+      },
+      {
+        "from": "../src",
+        "to": "python/src"
+      },
+      {
+        "from": "../data",
+        "to": "python/data"
+      },
+      {
+        "from": "../templates",
+        "to": "python/templates"
+      }
+    ]
   }
 }

@@ -1,14 +1,81 @@
 import { app, BrowserWindow, Menu, dialog } from 'electron';
 import { spawn } from 'child_process';
+import http from 'http';
 import path from 'path';
+import process from 'node:process';
 import { fileURLToPath } from 'url';
-import isDev from 'electron-is-dev';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const isDev = !app.isPackaged;
+const BACKEND_PORT = 8002;
+const BACKEND_HOST = '127.0.0.1';
+const BACKEND_URL = `http://${BACKEND_HOST}:${BACKEND_PORT}`;
 
 let mainWindow;
 let pythonProcess;
+let isQuitting = false;
+
+const stopPythonBackend = () => {
+  if (!pythonProcess || pythonProcess.killed) {
+    return;
+  }
+  pythonProcess.kill();
+};
+
+const waitForBackendReady = (timeoutMs = 25000) =>
+  new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    const attempt = () => {
+      const request = http.get(`${BACKEND_URL}/api/projects`, (response) => {
+        response.resume();
+        resolve();
+      });
+
+      request.on('error', () => {
+        if (Date.now() >= deadline) {
+          reject(
+            new Error(
+              `Backend did not start at ${BACKEND_URL} within ${timeoutMs}ms.`
+            )
+          );
+          return;
+        }
+        setTimeout(attempt, 350);
+      });
+
+      request.setTimeout(1000, () => {
+        request.destroy();
+      });
+    };
+
+    attempt();
+  });
+
+const getBackendLaunchConfig = () => {
+  if (isDev) {
+    const repoRoot = path.resolve(__dirname, '..');
+    return {
+      appModule: 'web.main:app',
+      appDir: repoRoot,
+      cwd: repoRoot,
+      env: {},
+    };
+  }
+
+  const pythonRoot = path.join(process.resourcesPath, 'python');
+  const userDataRoot = path.join(app.getPath('documents'), 'Resume Generator');
+  return {
+    appModule: 'web.main:app',
+    appDir: pythonRoot,
+    cwd: pythonRoot,
+    env: {
+      ALLOW_EXTERNAL_PATHS: 'true',
+      LOCAL_OUTPUTS_ROOT: path.join(userDataRoot, 'outputs'),
+      LOCAL_PURSUITS_ROOT: path.join(userDataRoot, 'pursuits_local'),
+    },
+  };
+};
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -42,10 +109,29 @@ const createWindow = () => {
 };
 
 const startPythonBackend = () => {
-  pythonProcess = spawn('python', ['-m', 'uvicorn', 'main:app', '--port', '8002'], {
-    cwd: __dirname,
-    stdio: 'pipe',
-  });
+  const launchConfig = getBackendLaunchConfig();
+  pythonProcess = spawn(
+    'python',
+    [
+      '-m',
+      'uvicorn',
+      launchConfig.appModule,
+      '--host',
+      BACKEND_HOST,
+      '--port',
+      String(BACKEND_PORT),
+      '--app-dir',
+      launchConfig.appDir,
+    ],
+    {
+      cwd: launchConfig.cwd,
+      env: {
+        ...process.env,
+        ...launchConfig.env,
+      },
+      stdio: 'pipe',
+    }
+  );
 
   pythonProcess.stdout.on('data', (data) => {
     console.log(`Python: ${data}`);
@@ -61,11 +147,30 @@ const startPythonBackend = () => {
       `Failed to start Python backend: ${error.message}`
     );
   });
+
+  pythonProcess.on('exit', (code, signal) => {
+    if (isQuitting || code === 0 || code === null) {
+      return;
+    }
+    dialog.showErrorBox(
+      'Backend Error',
+      `Python backend exited unexpectedly (code: ${code}, signal: ${signal ?? 'none'}).`
+    );
+  });
 };
 
-app.on('ready', () => {
+app.on('ready', async () => {
   startPythonBackend();
-  setTimeout(createWindow, 1000);
+  try {
+    await waitForBackendReady();
+    createWindow();
+  } catch (error) {
+    dialog.showErrorBox(
+      'Startup Error',
+      `Resume Generator could not start the backend.\n\n${error.message}`
+    );
+    app.quit();
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -81,9 +186,8 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
-  if (pythonProcess) {
-    pythonProcess.kill();
-  }
+  isQuitting = true;
+  stopPythonBackend();
 });
 
 const template = [
