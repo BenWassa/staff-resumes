@@ -174,7 +174,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@blackline.ca"
+                placeholder="you@blacklineconsulting.ca"
                 className="input-field"
               />
             </Field>
