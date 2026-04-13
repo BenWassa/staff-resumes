@@ -22,12 +22,31 @@ def initialize() -> None:
 
     cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
     if cred_path:
-        cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred, {
-            "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", ""),
-        })
+        # If relative, resolve from project root (parent of web/)
+        if not os.path.isabs(cred_path):
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            cred_path = os.path.join(project_root, cred_path)
+        
+        if os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+            firebase_admin.initialize_app(
+                cred,
+                {
+                    "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", ""),
+                },
+            )
+        else:
+            print(f"Warning: GOOGLE_APPLICATION_CREDENTIALS path not found: {cred_path}")
+            # Fallback to ADC
+            firebase_admin.initialize_app(
+                options={
+                    "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", ""),
+                }
+            )
     else:
         # Application Default Credentials (Cloud Run / Cloud Shell)
-        firebase_admin.initialize_app(options={
-            "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", ""),
-        })
+        firebase_admin.initialize_app(
+            options={
+                "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", ""),
+            }
+        )

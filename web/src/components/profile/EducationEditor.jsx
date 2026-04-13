@@ -1,34 +1,22 @@
-import { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  writeBatch,
-  doc,
-  orderBy,
-  query,
-} from "firebase/firestore";
-import { Plus, CheckCircle2, Loader2 } from "lucide-react";
-import { db } from "../../firebase";
-import SortableList from "../SortableList";
+import { useEffect, useState } from 'react';
+import { collection, getDocs, writeBatch, doc, orderBy, query } from 'firebase/firestore';
+import { Plus, CheckCircle2, Loader2 } from 'lucide-react';
+import { db } from '../../firebase';
+import SortableList from '../SortableList';
 
-const BLANK_EDU = { degree_cert: "", degree_area: "", location: "" };
+const BLANK_EDU = { degree_cert: '', degree_area: '', location: '' };
 
 export default function EducationEditor({ staffId }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saveState, setSaveState] = useState("idle");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [saveState, setSaveState] = useState('idle');
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     async function load() {
-      const q = query(
-        collection(db, "staff", staffId, "education"),
-        orderBy("order")
-      );
+      const q = query(collection(db, 'staff', staffId, 'education'), orderBy('order'));
       const snap = await getDocs(q);
-      setEntries(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      );
+      setEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoading(false);
     }
     load();
@@ -40,15 +28,13 @@ export default function EducationEditor({ staffId }) {
   }
 
   function updateEntry(id, field, value) {
-    setEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, [field]: value } : e))
-    );
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
   }
 
   // SortableList expects { id, label, sublabel }
   const sortableItems = entries.map((e) => ({
     id: e.id,
-    label: [e.degree_cert, e.degree_area].filter(Boolean).join(" — ") || "Untitled entry",
+    label: [e.degree_cert, e.degree_area].filter(Boolean).join(' — ') || 'Untitled entry',
     sublabel: e.location,
   }));
 
@@ -62,11 +48,11 @@ export default function EducationEditor({ staffId }) {
   }
 
   async function handleSave() {
-    setSaveState("saving");
-    setErrorMsg("");
+    setSaveState('saving');
+    setErrorMsg('');
     try {
       const batch = writeBatch(db);
-      const colRef = collection(db, "staff", staffId, "education");
+      const colRef = collection(db, 'staff', staffId, 'education');
 
       // Delete all existing education docs then rewrite
       const existing = await getDocs(colRef);
@@ -83,11 +69,11 @@ export default function EducationEditor({ staffId }) {
       });
 
       await batch.commit();
-      setSaveState("saved");
-      setTimeout(() => setSaveState("idle"), 2000);
+      setSaveState('saved');
+      setTimeout(() => setSaveState('idle'), 2000);
     } catch {
-      setSaveState("error");
-      setErrorMsg("Save failed. Please try again.");
+      setSaveState('error');
+      setErrorMsg('Save failed. Please try again.');
     }
   }
 
@@ -113,7 +99,7 @@ export default function EducationEditor({ staffId }) {
                 <input
                   type="text"
                   value={entry.degree_cert}
-                  onChange={(e) => updateEntry(entry.id, "degree_cert", e.target.value)}
+                  onChange={(e) => updateEntry(entry.id, 'degree_cert', e.target.value)}
                   className={inputCls}
                   placeholder="B.Eng."
                 />
@@ -122,7 +108,7 @@ export default function EducationEditor({ staffId }) {
                 <input
                   type="text"
                   value={entry.degree_area}
-                  onChange={(e) => updateEntry(entry.id, "degree_area", e.target.value)}
+                  onChange={(e) => updateEntry(entry.id, 'degree_area', e.target.value)}
                   className={inputCls}
                   placeholder="Civil Engineering"
                 />
@@ -131,7 +117,7 @@ export default function EducationEditor({ staffId }) {
                 <input
                   type="text"
                   value={entry.location}
-                  onChange={(e) => updateEntry(entry.id, "location", e.target.value)}
+                  onChange={(e) => updateEntry(entry.id, 'location', e.target.value)}
                   className={inputCls}
                   placeholder="University of Calgary"
                 />
@@ -151,11 +137,7 @@ export default function EducationEditor({ staffId }) {
           <p className="text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider font-medium">
             Drag to reorder
           </p>
-          <SortableList
-            items={sortableItems}
-            onReorder={handleReorder}
-            onRemove={handleRemove}
-          />
+          <SortableList items={sortableItems} onReorder={handleReorder} onRemove={handleRemove} />
         </div>
       )}
 
@@ -172,19 +154,17 @@ export default function EducationEditor({ staffId }) {
         <button
           type="button"
           onClick={handleSave}
-          disabled={saveState === "saving"}
+          disabled={saveState === 'saving'}
           className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-[var(--radius)] transition-opacity"
         >
-          {saveState === "saving" ? "Saving…" : "Save education"}
+          {saveState === 'saving' ? 'Saving…' : 'Save education'}
         </button>
-        {saveState === "saved" && (
+        {saveState === 'saved' && (
           <span className="flex items-center gap-1.5 text-sm text-green-500">
             <CheckCircle2 size={15} /> Saved
           </span>
         )}
-        {saveState === "error" && (
-          <span className="text-sm text-red-400">{errorMsg}</span>
-        )}
+        {saveState === 'error' && <span className="text-sm text-red-400">{errorMsg}</span>}
       </div>
     </div>
   );
@@ -202,4 +182,4 @@ function EduField({ label, children }) {
 }
 
 const inputCls =
-  "w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-[var(--radius)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--blc-red)] transition-colors";
+  'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-[var(--radius)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--blc-red)] transition-colors';

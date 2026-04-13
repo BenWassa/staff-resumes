@@ -6,7 +6,7 @@
  * On 401: forces a token refresh and retries once before redirecting to /login.
  */
 
-import { auth } from "../firebase";
+import { auth } from '../firebase';
 
 export async function apiFetch(url, options = {}) {
   const token = await _getToken();
@@ -18,7 +18,7 @@ export async function apiFetch(url, options = {}) {
     const retry = await _fetchWithToken(url, options, freshToken);
     if (retry.status === 401) {
       // Still unauthorized — send to login
-      window.location.href = "/login";
+      window.location.href = '/login';
       return retry;
     }
     return retry;
@@ -30,8 +30,8 @@ export async function apiFetch(url, options = {}) {
 async function _getToken(forceRefresh = false) {
   const user = auth.currentUser;
   if (!user) {
-    window.location.href = "/login";
-    throw new Error("Not authenticated");
+    window.location.href = '/login';
+    throw new Error('Not authenticated');
   }
   return user.getIdToken(forceRefresh);
 }
@@ -42,7 +42,7 @@ function _fetchWithToken(url, options, token) {
     headers: {
       ...(options.headers ?? {}),
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
 }

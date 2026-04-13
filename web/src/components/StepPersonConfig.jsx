@@ -11,18 +11,15 @@ import {
   ListFilter,
   Search,
   X,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import {
-  formatProjectDateRange,
-  getProjectDateSortValue,
-} from "../utils/projectDates";
-import SortableList from "./SortableList";
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { formatProjectDateRange, getProjectDateSortValue } from '../utils/projectDates';
+import SortableList from './SortableList';
 
 function normalizeSearchValue(value) {
-  return String(value || "")
+  return String(value || '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
 
@@ -33,7 +30,7 @@ function getProjectSearchScore(project, query) {
   const title = normalizeSearchValue(project.title);
   const client = normalizeSearchValue(project.client);
   const key = normalizeSearchValue(project.key);
-  const haystack = [title, client, key].filter(Boolean).join(" ");
+  const haystack = [title, client, key].filter(Boolean).join(' ');
   const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
 
   if (!haystack) return Number.POSITIVE_INFINITY;
@@ -76,62 +73,57 @@ function sortProjectsForSearch(projects, query) {
 
   return [...projects].sort((a, b) => {
     const scoreDifference =
-      getProjectSearchScore(a, normalizedQuery) -
-      getProjectSearchScore(b, normalizedQuery);
+      getProjectSearchScore(a, normalizedQuery) - getProjectSearchScore(b, normalizedQuery);
     if (scoreDifference !== 0) return scoreDifference;
     return (a.title || a.key).localeCompare(b.title || b.key);
   });
 }
 
-function compareTextValues(a, b, direction = "asc") {
-  const normalizedA = String(a || "")
+function compareTextValues(a, b, direction = 'asc') {
+  const normalizedA = String(a || '')
     .trim()
     .toLocaleLowerCase();
-  const normalizedB = String(b || "")
+  const normalizedB = String(b || '')
     .trim()
     .toLocaleLowerCase();
   const comparison = normalizedA.localeCompare(normalizedB);
-  return direction === "desc" ? -comparison : comparison;
+  return direction === 'desc' ? -comparison : comparison;
 }
 
-function compareDateValues(a, b, direction = "desc") {
-  const normalizedA = String(a || "").trim();
-  const normalizedB = String(b || "").trim();
+function compareDateValues(a, b, direction = 'desc') {
+  const normalizedA = String(a || '').trim();
+  const normalizedB = String(b || '').trim();
 
   if (!normalizedA && !normalizedB) return 0;
   if (!normalizedA) return 1;
   if (!normalizedB) return -1;
 
   const comparison = normalizedA.localeCompare(normalizedB);
-  return direction === "asc" ? comparison : -comparison;
+  return direction === 'asc' ? comparison : -comparison;
 }
 
 function sortProjects(projects, sortConfig) {
   return [...projects].sort((a, b) => {
     let comparison = 0;
 
-    if (sortConfig.column === "client") {
+    if (sortConfig.column === 'client') {
       comparison = compareTextValues(
         a.client || a.title || a.key,
         b.client || b.title || b.key,
-        sortConfig.direction,
+        sortConfig.direction
       );
-    } else if (sortConfig.column === "title") {
-      comparison = compareTextValues(
-        a.title || a.key,
-        b.title || b.key,
-        sortConfig.direction,
-      );
-    } else if (sortConfig.column === "date") {
+    } else if (sortConfig.column === 'title') {
+      comparison = compareTextValues(a.title || a.key, b.title || b.key, sortConfig.direction);
+    } else if (sortConfig.column === 'date') {
       comparison = compareDateValues(
         getProjectDateSortValue(a),
         getProjectDateSortValue(b),
-        sortConfig.direction,
+        sortConfig.direction
       );
     }
 
     if (comparison !== 0) return comparison;
-    return compareTextValues(a.title || a.key, b.title || b.key, "asc");
+    return compareTextValues(a.title || a.key, b.title || b.key, 'asc');
   });
 }
 
@@ -140,15 +132,15 @@ function SortHeader({ active, direction, label, onClick }) {
     <button
       className={`inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-1 transition ${
         active
-          ? "text-[var(--text-main)]"
-          : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+          ? 'text-[var(--text-main)]'
+          : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
       }`}
       onClick={onClick}
       type="button"
     >
       <span>{label}</span>
       {active ? (
-        direction === "asc" ? (
+        direction === 'asc' ? (
           <ArrowUp className="h-3 w-3" />
         ) : (
           <ArrowDown className="h-3 w-3" />
@@ -172,13 +164,11 @@ function TeamOrder({ selectedNames, activeTab, onSelectTab, onReorder }) {
   return (
     <div
       className="space-y-3 rounded-[var(--radius-md)] border border-[var(--border-main)] bg-[var(--bg-card)] p-4"
-      style={{ borderTop: "var(--card-border-top)" }}
+      style={{ borderTop: 'var(--card-border-top)' }}
     >
       <div className="flex items-center gap-2">
         <GripVertical className="h-4 w-4 text-[var(--text-muted)]" />
-        <span className="text-base font-medium text-[var(--text-main)]">
-          Team Order
-        </span>
+        <span className="text-base font-medium text-[var(--text-main)]">Team Order</span>
         <span className="ml-auto text-sm text-[var(--text-muted)]">
           Consolidated resume follows this order
         </span>
@@ -190,8 +180,8 @@ function TeamOrder({ selectedNames, activeTab, onSelectTab, onReorder }) {
             key={name}
             className={`flex items-center gap-2 rounded-[var(--radius-sm)] border px-3 py-2.5 transition ${
               activeTab === name
-                ? "border-[var(--border-accent)] bg-[var(--bg-selected)]"
-                : "border-[var(--border-main)] bg-[var(--bg-panel)]"
+                ? 'border-[var(--border-accent)] bg-[var(--bg-selected)]'
+                : 'border-[var(--border-main)] bg-[var(--bg-panel)]'
             }`}
           >
             <button
@@ -202,9 +192,7 @@ function TeamOrder({ selectedNames, activeTab, onSelectTab, onReorder }) {
               <span className="w-5 shrink-0 text-center font-mono text-sm text-[var(--text-muted)]">
                 {index + 1}
               </span>
-              <span className="truncate text-base text-[var(--text-main)]">
-                {name}
-              </span>
+              <span className="truncate text-base text-[var(--text-main)]">{name}</span>
             </button>
 
             <div className="flex shrink-0 items-center gap-1">
@@ -243,17 +231,17 @@ function ProjectSelectionModal({
   onSelectAll,
   onDeselectAll,
 }) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({
-    column: "client",
-    direction: "asc",
+    column: 'client',
+    direction: 'asc',
   });
   const searchInputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
       const timeoutId = window.setTimeout(() => {
-        setSearchQuery("");
+        setSearchQuery('');
         searchInputRef.current?.focus();
       }, 0);
       return () => window.clearTimeout(timeoutId);
@@ -265,13 +253,13 @@ function ProjectSelectionModal({
     if (!isOpen) return undefined;
 
     const handleEscape = (event) => {
-      if (event.key !== "Escape") return;
+      if (event.key !== 'Escape') return;
       event.preventDefault();
       onClose();
     };
 
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -284,22 +272,20 @@ function ProjectSelectionModal({
       })
     : projects;
   const sortedProjects = sortProjects(visibleProjects, sortConfig);
-  const topQuickAddProject = visibleProjects.find(
-    (project) => !selectedKeys.includes(project.key),
-  );
+  const topQuickAddProject = visibleProjects.find((project) => !selectedKeys.includes(project.key));
 
   const updateSort = (column) => {
     setSortConfig((current) => {
       if (current.column === column) {
         return {
           column,
-          direction: current.direction === "asc" ? "desc" : "asc",
+          direction: current.direction === 'asc' ? 'desc' : 'asc',
         };
       }
 
       return {
         column,
-        direction: column === "date" ? "desc" : "asc",
+        direction: column === 'date' ? 'desc' : 'asc',
       };
     });
   };
@@ -307,14 +293,14 @@ function ProjectSelectionModal({
   const handleQuickAdd = () => {
     if (!topQuickAddProject) return;
     onToggleProject(topQuickAddProject.key);
-    setSearchQuery("");
+    setSearchQuery('');
     window.setTimeout(() => {
       searchInputRef.current?.focus();
     }, 0);
   };
 
   const handleSearchKeyDown = (event) => {
-    if (event.key !== "Enter") return;
+    if (event.key !== 'Enter') return;
     event.preventDefault();
     handleQuickAdd();
   };
@@ -335,12 +321,9 @@ function ProjectSelectionModal({
       <div className="relative z-10 flex h-[min(80vh,720px)] w-[min(90vw,760px)] flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-main)] bg-[var(--bg-panel)] shadow-[var(--shadow-panel)]">
         <div className="flex items-center justify-between border-b border-[var(--border-main)] px-5 py-4">
           <div>
-            <div className="text-base font-medium text-[var(--text-main)]">
-              Select Projects
-            </div>
+            <div className="text-base font-medium text-[var(--text-main)]">Select Projects</div>
             <div className="text-sm text-[var(--text-muted)]">
-              Check the projects to include, then reorder them on the main
-              screen.
+              Check the projects to include, then reorder them on the main screen.
             </div>
           </div>
           <button
@@ -378,9 +361,9 @@ function ProjectSelectionModal({
             <div className="mt-2 text-sm text-[var(--text-muted)]">
               {searchQuery
                 ? topQuickAddProject
-                  ? "Press Enter to add the highlighted result."
-                  : "No unselected matches for that search."
-                : "Search is ranked so the best match stays on top for quick Enter-to-add."}
+                  ? 'Press Enter to add the highlighted result.'
+                  : 'No unselected matches for that search.'
+                : 'Search is ranked so the best match stays on top for quick Enter-to-add.'}
             </div>
           </div>
 
@@ -409,22 +392,22 @@ function ProjectSelectionModal({
           {sortedProjects.length > 0 ? (
             <div className="mb-2 grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(120px,0.72fr)_auto] gap-3 px-4 text-sm uppercase tracking-[0.12em] opacity-70">
               <SortHeader
-                active={sortConfig.column === "client"}
+                active={sortConfig.column === 'client'}
                 direction={sortConfig.direction}
                 label="Client"
-                onClick={() => updateSort("client")}
+                onClick={() => updateSort('client')}
               />
               <SortHeader
-                active={sortConfig.column === "title"}
+                active={sortConfig.column === 'title'}
                 direction={sortConfig.direction}
                 label="Engagement"
-                onClick={() => updateSort("title")}
+                onClick={() => updateSort('title')}
               />
               <SortHeader
-                active={sortConfig.column === "date"}
+                active={sortConfig.column === 'date'}
                 direction={sortConfig.direction}
                 label="Dates"
-                onClick={() => updateSort("date")}
+                onClick={() => updateSort('date')}
               />
               <div className="w-5" aria-hidden />
             </div>
@@ -441,15 +424,15 @@ function ProjectSelectionModal({
                   key={project.key}
                   className={`grid w-full grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(120px,0.72fr)_auto] items-start gap-3 rounded-[var(--radius-sm)] border px-4 py-3 text-left transition ${
                     checked || isTopQuickAddMatch
-                      ? "border-[var(--border-accent)] bg-[var(--bg-selected)]"
-                      : "border-[var(--border-main)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]"
+                      ? 'border-[var(--border-accent)] bg-[var(--bg-selected)]'
+                      : 'border-[var(--border-main)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]'
                   }`}
                   onClick={() => onToggleProject(project.key)}
                   type="button"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-base font-medium text-[var(--text-main)]">
-                      {project.client || "Unknown client"}
+                      {project.client || 'Unknown client'}
                     </div>
                   </div>
                   <div className="min-w-0">
@@ -459,14 +442,14 @@ function ProjectSelectionModal({
                   </div>
                   <div className="min-w-0">
                     <div className="truncate text-sm text-[var(--text-muted)]">
-                      {dateRange || "-"}
+                      {dateRange || '-'}
                     </div>
                   </div>
                   <div
                     className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
                       checked
-                        ? "border-[var(--border-accent-subtle)] bg-[var(--accent-main)] text-[var(--accent-text)]"
-                        : "border-[var(--border-main)] bg-[var(--bg-panel)] text-transparent"
+                        ? 'border-[var(--border-accent-subtle)] bg-[var(--accent-main)] text-[var(--accent-text)]'
+                        : 'border-[var(--border-main)] bg-[var(--bg-panel)] text-transparent'
                     }`}
                   >
                     <Check className="h-3.5 w-3.5" />
@@ -487,7 +470,7 @@ function ProjectSelectionModal({
           <div className="flex items-center justify-between gap-3">
             <div className="text-base text-[var(--text-muted)]">
               {selectedKeys.length} project
-              {selectedKeys.length !== 1 ? "s" : ""} selected
+              {selectedKeys.length !== 1 ? 's' : ''} selected
             </div>
             <button
               className="rounded-[var(--radius-sm)] bg-[var(--accent-main)] px-4 py-2 text-base font-medium text-[var(--accent-text)] transition hover:bg-[var(--accent-hover)]"
@@ -517,7 +500,7 @@ function PersonPanel({ data, selection, onChangeSelection }) {
     return {
       id: key,
       label: project?.title ?? key,
-      sublabel: project?.client ?? "",
+      sublabel: project?.client ?? '',
     };
   });
 
@@ -581,13 +564,11 @@ function PersonPanel({ data, selection, onChangeSelection }) {
 
       <div
         className="space-y-3 rounded-[var(--radius-md)] border border-[var(--border-main)] bg-[var(--bg-card)] p-4"
-        style={{ borderTop: "var(--card-border-top)" }}
+        style={{ borderTop: 'var(--card-border-top)' }}
       >
         <div className="flex items-center gap-2">
           <Layers className="h-4 w-4 text-[var(--text-muted)]" />
-          <span className="text-base font-medium text-[var(--text-main)]">
-            Projects
-          </span>
+          <span className="text-base font-medium text-[var(--text-main)]">Projects</span>
           <span className="ml-auto text-sm text-[var(--text-muted)]">
             {selectedKeys.length} of {availableProjects.length} selected
           </span>
@@ -604,11 +585,7 @@ function PersonPanel({ data, selection, onChangeSelection }) {
           </button>
         </div>
 
-        <SortableList
-          items={sortedItems}
-          onReorder={reorderProjects}
-          onRemove={removeProject}
-        />
+        <SortableList items={sortedItems} onReorder={reorderProjects} onRemove={removeProject} />
       </div>
 
       {allEducation.length > 0 ? (
@@ -619,9 +596,7 @@ function PersonPanel({ data, selection, onChangeSelection }) {
             type="button"
           >
             <BookOpen className="h-4 w-4 text-[var(--text-muted)]" />
-            <span className="text-base font-medium text-[var(--text-main)]">
-              Education
-            </span>
+            <span className="text-base font-medium text-[var(--text-main)]">Education</span>
             <span className="ml-auto text-sm text-[var(--text-muted)]">
               {educationIndices.length} of {allEducation.length} included
             </span>
@@ -637,13 +612,9 @@ function PersonPanel({ data, selection, onChangeSelection }) {
               {allEducation.map((entry, index) => {
                 const idx = index + 1;
                 const checked = educationIndices.includes(idx);
-                const label = [
-                  entry.degree_cert,
-                  entry.degree_area,
-                  entry.location,
-                ]
+                const label = [entry.degree_cert, entry.degree_area, entry.location]
                   .filter(Boolean)
-                  .join(" | ");
+                  .join(' | ');
 
                 return (
                   <label
@@ -653,8 +624,8 @@ function PersonPanel({ data, selection, onChangeSelection }) {
                     <div
                       className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
                         checked
-                          ? "border-[var(--border-accent-subtle)] bg-[var(--bg-accent-subtle)]"
-                          : "border-[var(--border-main)] bg-[var(--bg-panel)]"
+                          ? 'border-[var(--border-accent-subtle)] bg-[var(--bg-accent-subtle)]'
+                          : 'border-[var(--border-main)] bg-[var(--bg-panel)]'
                       }`}
                       onClick={() => toggleEduIndex(idx)}
                     >
@@ -675,7 +646,7 @@ function PersonPanel({ data, selection, onChangeSelection }) {
                       ) : null}
                     </div>
                     <span
-                      className={`text-base ${checked ? "text-[var(--text-main)]" : "text-[var(--text-muted)]"}`}
+                      className={`text-base ${checked ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}`}
                       onClick={() => toggleEduIndex(idx)}
                     >
                       {label || `Education entry ${idx}`}
@@ -698,11 +669,9 @@ export default function StepPersonConfig({
   onChangeSelections,
   onChangeSelectedNames,
 }) {
-  const [activeTab, setActiveTab] = useState(selectedNames[0] ?? "");
+  const [activeTab, setActiveTab] = useState(selectedNames[0] ?? '');
 
-  const currentTab = selectedNames.includes(activeTab)
-    ? activeTab
-    : (selectedNames[0] ?? "");
+  const currentTab = selectedNames.includes(activeTab) ? activeTab : (selectedNames[0] ?? '');
 
   const updatePerson = (name, newSelection) => {
     onChangeSelections({ ...selections, [name]: newSelection });
@@ -712,8 +681,8 @@ export default function StepPersonConfig({
     <div className="grid min-h-0 gap-10 lg:grid-cols-[320px_minmax(0,1fr)]">
       <div className="min-h-0 space-y-4">
         <p className="text-base text-[var(--text-muted)]">
-          Reorder people for the consolidated resume, then choose and sort
-          projects for each team member.
+          Reorder people for the consolidated resume, then choose and sort projects for each team
+          member.
         </p>
 
         <TeamOrder
@@ -729,9 +698,7 @@ export default function StepPersonConfig({
           <PersonPanel
             data={personData[currentTab]}
             selection={selections[currentTab]}
-            onChangeSelection={(nextSelection) =>
-              updatePerson(currentTab, nextSelection)
-            }
+            onChangeSelection={(nextSelection) => updatePerson(currentTab, nextSelection)}
           />
         ) : (
           <div className="flex items-center justify-center py-10">

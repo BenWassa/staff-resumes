@@ -2,12 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: is the request from a signed-in user?
     function isAuth() {
       return request.auth != null;
     }
 
-    // Helper: fetch the calling user's /users doc (for role check)
     function userDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
@@ -16,8 +14,9 @@ service cloud.firestore {
       return isAuth() && userDoc().data.role == "admin";
     }
 
-    function isMember() {
-      return isAuth() && userDoc().data.role == "member";
+    // Role assigned on sign-up is "staff"
+    function isStaff() {
+      return isAuth() && userDoc().data.role == "staff";
     }
 
     // Authorised email whitelist — keep in sync with web/src/allowedEmails.js
@@ -39,9 +38,9 @@ service cloud.firestore {
     }
 
     // ── /users ──────────────────────────────────────────────────────────────
-    // Users can read their own doc.
-    // A user may create their own doc only if their email is on the whitelist
-    // and they are not self-assigning admin. Admins can write any user doc.
+    // A user may create their own doc on first sign-in if their email is
+    // whitelisted and they are not self-assigning admin.
+    // Only admins can update user docs (e.g. to set staff_id or change role).
     match /users/{uid} {
       allow read: if isAuth() && request.auth.uid == uid;
       allow create: if isAuth()
@@ -53,42 +52,37 @@ service cloud.firestore {
 
     // ── /staff ──────────────────────────────────────────────────────────────
     // Any authenticated user can read staff profiles.
-    // A member can write their own linked staff doc; admins can write any.
+    // A staff member can write their own linked profile; admins can write any.
     match /staff/{staffId} {
       allow read: if isAuth();
       allow write: if isAdmin()
-        || (isMember() && userDoc().data.staff_id == staffId);
+        || (isStaff() && userDoc().data.staff_id == staffId);
 
-      // Education subcollection — same rules as parent
       match /education/{eduId} {
         allow read: if isAuth();
         allow write: if isAdmin()
-          || (isMember() && userDoc().data.staff_id == staffId);
+          || (isStaff() && userDoc().data.staff_id == staffId);
       }
 
-      // Projects subcollection — same rules as parent
       match /projects/{projectKey} {
         allow read: if isAuth();
         allow write: if isAdmin()
-          || (isMember() && userDoc().data.staff_id == staffId);
+          || (isStaff() && userDoc().data.staff_id == staffId);
       }
     }
 
     // ── /pursuits ────────────────────────────────────────────────────────────
-    // All authenticated users read; only admins create/update.
     match /pursuits/{pursuitId} {
       allow read: if isAuth();
       allow write: if isAdmin();
     }
 
     // ── /sessions ────────────────────────────────────────────────────────────
-    // All authenticated users can read and write sessions.
     match /sessions/{sessionId} {
       allow read, write: if isAuth();
     }
 
     // ── /jobs ────────────────────────────────────────────────────────────────
-    // Users can read their own jobs. Only the backend service account writes.
     match /jobs/{jobId} {
       allow read: if isAuth()
         && resource.data.created_by == request.auth.uid;

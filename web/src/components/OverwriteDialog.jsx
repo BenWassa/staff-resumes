@@ -10,14 +10,12 @@ export default function OverwriteDialog({
 
   const parts = [];
   if (individualCount > 0) {
-    parts.push(
-      `${individualCount} individual resume${individualCount !== 1 ? "s" : ""}`,
-    );
+    parts.push(`${individualCount} individual resume${individualCount !== 1 ? 's' : ''}`);
   }
   if (consolidatedExists) {
-    parts.push("a consolidated resume");
+    parts.push('a consolidated resume');
   }
-  const fileDescription = parts.join(" and ");
+  const fileDescription = parts.join(' and ');
 
   return (
     <div
@@ -36,14 +34,10 @@ export default function OverwriteDialog({
           Overwrite existing files?
         </h2>
         <p className="mb-1 text-sm text-[var(--text-muted)]">
-          <span className="font-mono text-[var(--text-main)]">
-            outputs/{slug}/
-          </span>{" "}
-          already contains {fileDescription}.
+          <span className="font-mono text-[var(--text-main)]">outputs/{slug}/</span> already
+          contains {fileDescription}.
         </p>
-        <p className="mb-6 text-sm text-[var(--text-muted)]">
-          Generating will replace them.
-        </p>
+        <p className="mb-6 text-sm text-[var(--text-muted)]">Generating will replace them.</p>
         <div className="flex justify-end gap-3">
           <button
             className="rounded-[var(--radius-sm)] border border-[var(--border-main)] px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--bg-hover)]"

@@ -1,5 +1,12 @@
 {
   "name": "staff-resumes",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix web run dev",
+    "dev:api": "npm --prefix web run dev:api",
+    "dev:client": "npm --prefix web run dev:client",
+    "install:all": "npm install && npm --prefix web install --legacy-peer-deps"
+  },
   "dependencies": {
     "firebase": "^12.12.0"
   }

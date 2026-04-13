@@ -103,19 +103,21 @@ def generate(
             # No filter specified → include all education entries
             filtered_education = all_education
 
-        people_config.append({
-            "name": name,
-            "output": "individual",
-            "first_name": person_data.get("first_name", name.split()[0]),
-            "last_name": person_data.get("last_name", name.split()[-1]),
-            "title": person_data.get("title", ""),
-            "summary": person_data.get("summary", ""),
-            "education": filtered_education,
-            "projects": [
-                {"key": key, "order": order + 1}
-                for order, key in enumerate(project_keys)
-            ],
-        })
+        people_config.append(
+            {
+                "name": name,
+                "output": "individual",
+                "first_name": person_data.get("first_name", name.split()[0]),
+                "last_name": person_data.get("last_name", name.split()[-1]),
+                "title": person_data.get("title", ""),
+                "summary": person_data.get("summary", ""),
+                "education": filtered_education,
+                "projects": [
+                    {"key": key, "order": order + 1}
+                    for order, key in enumerate(project_keys)
+                ],
+            }
+        )
 
     selections = {
         "people": people_config,
@@ -159,8 +161,12 @@ def generate(
             if consolidated_dir.exists():
                 consolidated_file = consolidated_dir / "consolidated_resume.docx"
                 if consolidated_file.exists():
-                    storage_path = f"outputs/{job_id}/consolidated/consolidated_resume.docx"
-                    consolidated_url = _upload_to_storage(consolidated_file, storage_path)
+                    storage_path = (
+                        f"outputs/{job_id}/consolidated/consolidated_resume.docx"
+                    )
+                    consolidated_url = _upload_to_storage(
+                        consolidated_file, storage_path
+                    )
 
         # Enrich the pipeline result with download URLs
         result["individual_urls"] = individual_urls

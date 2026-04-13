@@ -1,15 +1,15 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import LoginPage from "./pages/LoginPage";
-import ProfilePage from "./pages/ProfilePage";
-import AdminPage from "./pages/AdminPage";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/AdminPage';
 
 function RootRedirect() {
   const { user, role, loading } = useAuth();
   if (loading) return <div className="min-h-screen bg-[var(--bg-main)]" />;
   if (!user) return <Navigate to="/login" replace />;
-  return <Navigate to={role === "admin" ? "/admin" : "/profile"} replace />;
+  return <Navigate to={role === 'admin' ? '/admin' : '/profile'} replace />;
 }
 
 export default function App() {

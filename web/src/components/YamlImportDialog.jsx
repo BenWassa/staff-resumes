@@ -1,5 +1,5 @@
-import { AlertCircle, FileCode, Upload, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { AlertCircle, FileCode, Upload, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 const PLACEHOLDER = `people:
   - name: Full Name As In Workbook
@@ -14,16 +14,16 @@ consolidated:
     - Full Name As In Workbook`;
 
 export default function YamlImportDialog({ isOpen, onClose, onImport }) {
-  const [yamlText, setYamlText] = useState("");
-  const [error, setError] = useState("");
+  const [yamlText, setYamlText] = useState('');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) {
-      setYamlText("");
-      setError("");
+      setYamlText('');
+      setError('');
       setIsLoading(false);
       return;
     }
@@ -36,10 +36,10 @@ export default function YamlImportDialog({ isOpen, onClose, onImport }) {
   useEffect(() => {
     if (!isOpen) return;
     const handler = (event) => {
-      if (event.key === "Escape" && !isLoading) onClose();
+      if (event.key === 'Escape' && !isLoading) onClose();
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, [isOpen, isLoading, onClose]);
 
   if (!isOpen) return null;
@@ -49,31 +49,31 @@ export default function YamlImportDialog({ isOpen, onClose, onImport }) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (loadEvent) => {
-      setYamlText(loadEvent.target.result || "");
-      setError("");
+      setYamlText(loadEvent.target.result || '');
+      setError('');
     };
-    reader.onerror = () => setError("Could not read the file.");
+    reader.onerror = () => setError('Could not read the file.');
     reader.readAsText(file);
     // reset so the same file can be reloaded if needed
-    event.target.value = "";
+    event.target.value = '';
   };
 
   const handleImport = async () => {
     if (!yamlText.trim()) {
-      setError("Paste or load a YAML file first.");
+      setError('Paste or load a YAML file first.');
       return;
     }
-    setError("");
+    setError('');
     setIsLoading(true);
     try {
-      const response = await fetch("/api/yaml-import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/yaml-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: yamlText }),
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.detail || "Import failed.");
+        throw new Error(data.detail || 'Import failed.');
       }
       onImport(data);
     } catch (importError) {
@@ -103,9 +103,7 @@ export default function YamlImportDialog({ isOpen, onClose, onImport }) {
           <div className="flex items-center gap-2">
             <FileCode className="h-4 w-4 text-[var(--text-accent)]" />
             <div>
-              <div className="text-sm font-medium text-[var(--text-main)]">
-                Import from YAML
-              </div>
+              <div className="text-sm font-medium text-[var(--text-main)]">Import from YAML</div>
               <div className="text-xs text-[var(--text-muted)]">
                 Load a file or paste YAML to pre-fill the team and projects.
               </div>
@@ -153,7 +151,7 @@ export default function YamlImportDialog({ isOpen, onClose, onImport }) {
               disabled={isLoading}
               onChange={(e) => {
                 setYamlText(e.target.value);
-                setError("");
+                setError('');
               }}
               placeholder={PLACEHOLDER}
               spellCheck={false}
@@ -191,8 +189,8 @@ export default function YamlImportDialog({ isOpen, onClose, onImport }) {
             <button
               className={`inline-flex items-center gap-2 rounded-[var(--radius-sm)] px-4 py-2 text-sm font-medium transition ${
                 isLoading
-                  ? "cursor-not-allowed bg-[var(--border-main)] text-[var(--text-muted)]"
-                  : "bg-[var(--accent-main)] text-[var(--accent-text)] hover:bg-[var(--accent-hover)]"
+                  ? 'cursor-not-allowed bg-[var(--border-main)] text-[var(--text-muted)]'
+                  : 'bg-[var(--accent-main)] text-[var(--accent-text)] hover:bg-[var(--accent-hover)]'
               }`}
               disabled={isLoading || !yamlText.trim()}
               onClick={handleImport}

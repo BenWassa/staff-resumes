@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, GripVertical, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Trash2 } from 'lucide-react';
 
 export default function SortableList({ items, onReorder, onRemove }) {
   const move = (index, direction) => {
@@ -24,17 +24,12 @@ export default function SortableList({ items, onReorder, onRemove }) {
           key={item.id}
           className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-main)] bg-[var(--bg-panel)] px-3 py-2.5"
         >
-          <GripVertical
-            className="h-4 w-4 shrink-0 text-[var(--text-muted)]"
-            aria-hidden
-          />
+          <GripVertical className="h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden />
           <span className="mr-1 w-5 shrink-0 text-center font-mono text-xs text-[var(--text-muted)]">
             {index + 1}
           </span>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm text-[var(--text-main)]">
-              {item.label}
-            </div>
+            <div className="truncate text-sm text-[var(--text-main)]">{item.label}</div>
             {item.sublabel ? (
               <div className="truncate text-xs text-[var(--text-muted)] opacity-80">
                 {item.sublabel}

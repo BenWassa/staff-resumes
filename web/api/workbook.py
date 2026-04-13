@@ -21,6 +21,7 @@ def _workbook_path() -> Path:
     runtime = get_runtime_config()
     return resolve_workbook_path(runtime, refresh_if_configured=False)
 
+
 _ALIAS_REVERSE = {value: key for key, value in PERSON_SHEET_ALIASES.items()}
 
 

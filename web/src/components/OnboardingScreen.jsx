@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { FolderOpen, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { useState } from 'react';
+import { FolderOpen, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function OnboardingScreen({ onComplete }) {
-  const [pickedPath, setPickedPath] = useState("");
+  const [pickedPath, setPickedPath] = useState('');
   const [resolvedPath, setResolvedPath] = useState(null);
-  const [previewError, setPreviewError] = useState("");
+  const [previewError, setPreviewError] = useState('');
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
+  const [saveError, setSaveError] = useState('');
 
-  const canPickFolder = typeof window !== "undefined" && window.electronAPI?.selectFolder;
+  const canPickFolder = typeof window !== 'undefined' && window.electronAPI?.selectFolder;
 
   async function handleBrowse() {
     const picked = await window.electronAPI.selectFolder();
@@ -21,29 +21,29 @@ export default function OnboardingScreen({ onComplete }) {
   async function handleManualInput(e) {
     setPickedPath(e.target.value);
     setResolvedPath(null);
-    setPreviewError("");
+    setPreviewError('');
   }
 
   async function previewPath(path) {
     if (!path.trim()) return;
     setIsPreviewing(true);
     setResolvedPath(null);
-    setPreviewError("");
+    setPreviewError('');
     try {
-      const res = await fetch("/api/onboarding/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/onboarding/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         // dry-run: just ask the backend to resolve, don't commit yet
         body: JSON.stringify({ picked_path: path, dry_run: true }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setPreviewError(data.detail || "Could not identify a Pursuits folder at that path.");
+        setPreviewError(data.detail || 'Could not identify a Pursuits folder at that path.');
       } else {
         setResolvedPath(data.pursuits_root);
       }
     } catch {
-      setPreviewError("Could not reach the backend. Is the app still starting up?");
+      setPreviewError('Could not reach the backend. Is the app still starting up?');
     } finally {
       setIsPreviewing(false);
     }
@@ -56,21 +56,21 @@ export default function OnboardingScreen({ onComplete }) {
   async function handleConfirm() {
     if (!resolvedPath) return;
     setIsSaving(true);
-    setSaveError("");
+    setSaveError('');
     try {
-      const res = await fetch("/api/onboarding/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/onboarding/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ picked_path: resolvedPath }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setSaveError(data.detail || "Failed to save configuration.");
+        setSaveError(data.detail || 'Failed to save configuration.');
       } else {
         onComplete(data.pursuits_root);
       }
     } catch {
-      setSaveError("Could not reach the backend.");
+      setSaveError('Could not reach the backend.');
     } finally {
       setIsSaving(false);
     }
@@ -80,7 +80,7 @@ export default function OnboardingScreen({ onComplete }) {
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]">
       <div
         className="bg-[var(--bg-panel)] w-full max-w-lg"
-        style={{ borderTop: "var(--card-border-top)", boxShadow: "var(--shadow-panel)" }}
+        style={{ borderTop: 'var(--card-border-top)', boxShadow: 'var(--shadow-panel)' }}
       >
         {/* Header */}
         <div className="modal-header-bg px-8 py-6">
@@ -96,14 +96,13 @@ export default function OnboardingScreen({ onComplete }) {
         <div className="px-8 py-7 space-y-6">
           <div>
             <p className="text-sm text-[var(--text-main)] leading-relaxed">
-              To get started, select your{" "}
-              <span className="font-semibold">Pursuits folder</span> — the folder
-              that contains all your proposal project subfolders. Outputs will be
-              saved inside each project automatically.
+              To get started, select your <span className="font-semibold">Pursuits folder</span> —
+              the folder that contains all your proposal project subfolders. Outputs will be saved
+              inside each project automatically.
             </p>
             <p className="text-xs text-[var(--text-muted)] mt-2">
-              If you accidentally select a project subfolder, the app will find
-              the right location for you.
+              If you accidentally select a project subfolder, the app will find the right location
+              for you.
             </p>
           </div>
 
@@ -116,7 +115,7 @@ export default function OnboardingScreen({ onComplete }) {
                 placeholder="e.g. C:\Users\you\OneDrive - Company\Pursuits - Documents"
                 value={pickedPath}
                 onChange={handleManualInput}
-                onKeyDown={(e) => e.key === "Enter" && handlePreviewManual()}
+                onKeyDown={(e) => e.key === 'Enter' && handlePreviewManual()}
               />
               {canPickFolder && (
                 <button
@@ -151,7 +150,9 @@ export default function OnboardingScreen({ onComplete }) {
               <div className="flex items-start gap-2 text-xs text-[var(--text-muted)] bg-[var(--bg-accent-subtle)] border border-[var(--border-accent-subtle)] px-3 py-2">
                 <CheckCircle2 size={13} className="mt-0.5 text-[var(--accent-main)] shrink-0" />
                 <span>
-                  <span className="font-medium text-[var(--text-main)]">Pursuits folder found:</span>
+                  <span className="font-medium text-[var(--text-main)]">
+                    Pursuits folder found:
+                  </span>
                   <br />
                   <span className="font-mono break-all">{resolvedPath}</span>
                 </span>

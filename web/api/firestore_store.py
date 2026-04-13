@@ -23,12 +23,14 @@ def list_people() -> list[dict]:
     people = []
     for doc in docs:
         data = doc.to_dict()
-        people.append({
-            "name": data.get("display_name", doc.id),
-            "display_name": data.get("display_name", doc.id),
-            "title": data.get("title", ""),
-            "staff_id": doc.id,
-        })
+        people.append(
+            {
+                "name": data.get("display_name", doc.id),
+                "display_name": data.get("display_name", doc.id),
+                "title": data.get("title", ""),
+                "staff_id": doc.id,
+            }
+        )
     # Sort alphabetically by display name
     people.sort(key=lambda p: p["display_name"])
     return people
@@ -69,15 +71,17 @@ def get_person_data(person_name: str) -> dict:
     projects = []
     for p in proj_docs:
         pd = p.to_dict()
-        projects.append({
-            "key": pd.get("key", p.id),
-            "client": pd.get("client", ""),
-            "title": pd.get("title", ""),
-            "description": pd.get("description", ""),
-            "start_date": pd.get("start_date", ""),
-            "end_date": pd.get("end_date", ""),
-            "date_range": pd.get("date_range", ""),
-        })
+        projects.append(
+            {
+                "key": pd.get("key", p.id),
+                "client": pd.get("client", ""),
+                "title": pd.get("title", ""),
+                "description": pd.get("description", ""),
+                "start_date": pd.get("start_date", ""),
+                "end_date": pd.get("end_date", ""),
+                "date_range": pd.get("date_range", ""),
+            }
+        )
 
     # Load education subcollection, ordered by 'order' field
     edu_docs = (
@@ -90,11 +94,13 @@ def get_person_data(person_name: str) -> dict:
     education = []
     for e in edu_docs:
         ed = e.to_dict()
-        education.append({
-            "degree_cert": ed.get("degree_cert", ""),
-            "degree_area": ed.get("degree_area", ""),
-            "location": ed.get("location", ""),
-        })
+        education.append(
+            {
+                "degree_cert": ed.get("degree_cert", ""),
+                "degree_area": ed.get("degree_area", ""),
+                "location": ed.get("location", ""),
+            }
+        )
 
     return {
         "name": data.get("display_name", staff_id),

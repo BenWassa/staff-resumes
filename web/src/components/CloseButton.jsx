@@ -1,11 +1,6 @@
-import { X } from "lucide-react";
+import { X } from 'lucide-react';
 
-export default function CloseButton({
-  onClick,
-  disabled,
-  label = "Close",
-  className = "",
-}) {
+export default function CloseButton({ onClick, disabled, label = 'Close', className = '' }) {
   return (
     <button
       aria-label={label}

@@ -1,5 +1,5 @@
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Wraps a route so only authenticated users (and optionally a specific role)
@@ -10,7 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
  *   role      — optional: "admin" | "member" — redirects if role doesn't match
  *   redirect  — where to send unauthorized users (default: "/login")
  */
-export default function ProtectedRoute({ children, role, redirect = "/login" }) {
+export default function ProtectedRoute({ children, role, redirect = '/login' }) {
   const { user, role: userRole, loading } = useAuth();
 
   if (loading) {
@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children, role, redirect = "/login" }) 
   if (role && userRole !== role) {
     // Member trying to access admin route → their profile
     // Admin trying to access member-only route → admin dashboard
-    return <Navigate to={userRole === "admin" ? "/admin" : "/profile"} replace />;
+    return <Navigate to={userRole === 'admin' ? '/admin' : '/profile'} replace />;
   }
 
   return children;

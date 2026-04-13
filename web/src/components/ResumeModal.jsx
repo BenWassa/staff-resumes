@@ -1,55 +1,49 @@
-import {
-  CheckCircle2,
-  Download,
-  FileText,
-  Loader2,
-  RefreshCcw,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import CloseButton from "./CloseButton";
-import StepPackage from "./StepPackage";
-import StepPeople from "./StepPeople";
-import StepPersonConfig from "./StepPersonConfig";
-import { slugify } from "../utils/slugify";
-import { apiFetch } from "../utils/apiFetch";
+import { CheckCircle2, Download, FileText, Loader2, RefreshCcw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import CloseButton from './CloseButton';
+import StepPackage from './StepPackage';
+import StepPeople from './StepPeople';
+import StepPersonConfig from './StepPersonConfig';
+import { slugify } from '../utils/slugify';
+import { apiFetch } from '../utils/apiFetch';
 
-const STEPS = ["package", "people", "configure"];
-const STEP_LABELS = ["Name package", "Select team", "Configure"];
+const STEPS = ['package', 'people', 'configure'];
+const STEP_LABELS = ['Name package', 'Select team', 'Configure'];
 const TITLE_RANK = {
   partner: 0,
-  "senior engagement manager": 1,
-  "senior consultant": 2,
-  "associate consultant": 3,
+  'senior engagement manager': 1,
+  'senior consultant': 2,
+  'associate consultant': 3,
 };
 
 function getTitleRank(title) {
-  return TITLE_RANK[(title || "").trim().toLowerCase()] ?? 99;
+  return TITLE_RANK[(title || '').trim().toLowerCase()] ?? 99;
 }
 
 function sortNamesByRank(names, peopleByName) {
   return [...names].sort((a, b) => {
-    const aTitle = peopleByName[a]?.title || "";
-    const bTitle = peopleByName[b]?.title || "";
+    const aTitle = peopleByName[a]?.title || '';
+    const bTitle = peopleByName[b]?.title || '';
     return getTitleRank(aTitle) - getTitleRank(bTitle) || a.localeCompare(b);
   });
 }
 
 export default function ResumeModal({ isOpen, onClose }) {
-  const [step, setStep] = useState("package");
-  const [packageName, setPackageName] = useState("");
+  const [step, setStep] = useState('package');
+  const [packageName, setPackageName] = useState('');
   const [includePackagePages, setIncludePackagePages] = useState(true);
   const [allProjects, setAllProjects] = useState([]);
-  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [allPeople, setAllPeople] = useState([]);
   const [selectedNames, setSelectedNames] = useState([]);
   const [personData, setPersonData] = useState({});
   const [selections, setSelections] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationJobId, setGenerationJobId] = useState("");
+  const [generationJobId, setGenerationJobId] = useState('');
   const [showGenerationSuccess, setShowGenerationSuccess] = useState(false);
   const [saves, setSaves] = useState([]);
   const [completedJob, setCompletedJob] = useState(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const stepIndex = STEPS.indexOf(step);
 
@@ -64,46 +58,50 @@ export default function ResumeModal({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) return;
 
-    apiFetch("/api/people")
+    apiFetch('/api/people')
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) throw new Error(data.detail || "Failed to load team members.");
+        if (!response.ok) throw new Error(data.detail || 'Failed to load team members.');
         setAllPeople(data);
       })
       .catch((loadError) => setError(loadError.message));
 
-    apiFetch("/api/sessions")
+    apiFetch('/api/sessions')
       .then(async (response) => {
         if (!response.ok) return;
         const data = await response.json();
         // Map sessions to the shape StepPackage expects
-        setSaves(data.map((s) => ({
-          slug: s.id,
-          package_name: s.package_name,
-          saved_at: s.saved_at,
-          selected_names: s.selected_staff_ids || [],
-          selected_project_id: s.pursuit_id,
-        })));
+        setSaves(
+          data.map((s) => ({
+            slug: s.id,
+            package_name: s.package_name,
+            saved_at: s.saved_at,
+            selected_names: s.selected_staff_ids || [],
+            selected_project_id: s.pursuit_id,
+          }))
+        );
       })
       .catch(() => {});
 
-    apiFetch("/api/pursuits")
+    apiFetch('/api/pursuits')
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) throw new Error(data.detail || "Failed to load pursuits.");
+        if (!response.ok) throw new Error(data.detail || 'Failed to load pursuits.');
         // Map pursuits to the shape StepPackage expects
-        setAllProjects(data.map((p) => ({
-          project_id: p.id,
-          name: p.display_name,
-          folder_name: p.display_name,
-          display_name: p.display_name,
-          client: p.client,
-          engagement_number: p.engagement_number || "",
-        })));
+        setAllProjects(
+          data.map((p) => ({
+            project_id: p.id,
+            name: p.display_name,
+            folder_name: p.display_name,
+            display_name: p.display_name,
+            client: p.client,
+            engagement_number: p.engagement_number || '',
+          }))
+        );
       })
       .catch((loadError) => {
         setAllProjects([]);
-        setSelectedProjectId("");
+        setSelectedProjectId('');
         setError(loadError.message);
       });
   }, [isOpen]);
@@ -111,15 +109,15 @@ export default function ResumeModal({ isOpen, onClose }) {
   // Reset state when closing
   useEffect(() => {
     if (!isOpen) {
-      setStep("package");
-      setPackageName("");
+      setStep('package');
+      setPackageName('');
       setIncludePackagePages(true);
       setSelectedNames([]);
       setSelections({});
       setPersonData({});
-      setError("");
+      setError('');
       setIsGenerating(false);
-      setGenerationJobId("");
+      setGenerationJobId('');
       setShowGenerationSuccess(false);
       setCompletedJob(null);
     }
@@ -134,18 +132,18 @@ export default function ResumeModal({ isOpen, onClose }) {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.detail || "Failed to load generation status.");
+          throw new Error(data.detail || 'Failed to load generation status.');
         }
 
-        if (data.status === "completed") {
+        if (data.status === 'completed') {
           setIsGenerating(false);
           setShowGenerationSuccess(true);
           setCompletedJob(data);
           return;
         }
 
-        if (data.status === "failed") {
-          throw new Error(data.error || data.message || "Generation failed.");
+        if (data.status === 'failed') {
+          throw new Error(data.error || data.message || 'Generation failed.');
         }
       } catch (statusError) {
         setError(statusError.message);
@@ -159,25 +157,23 @@ export default function ResumeModal({ isOpen, onClose }) {
   }, [generationJobId, isGenerating, isOpen]);
 
   const handleLoadSave = async (slug) => {
-    setError("");
+    setError('');
     try {
       const response = await apiFetch(`/api/sessions/${encodeURIComponent(slug)}`);
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.detail || "Failed to load saved session.");
+        throw new Error(data.detail || 'Failed to load saved session.');
       }
 
       const names = data.selected_names || data.selected_staff_ids || [];
       const results = await Promise.allSettled(
         names.map((name) =>
-          apiFetch(`/api/people/${encodeURIComponent(name)}/data`).then(
-            async (r) => {
-              const personJson = await r.json();
-              if (!r.ok) throw new Error(name);
-              return personJson;
-            },
-          ),
-        ),
+          apiFetch(`/api/people/${encodeURIComponent(name)}/data`).then(async (r) => {
+            const personJson = await r.json();
+            if (!r.ok) throw new Error(name);
+            return personJson;
+          })
+        )
       );
 
       const nextPersonData = {};
@@ -186,7 +182,7 @@ export default function ResumeModal({ isOpen, onClose }) {
 
       results.forEach((result, index) => {
         const name = names[index];
-        if (result.status === "fulfilled") {
+        if (result.status === 'fulfilled') {
           nextPersonData[name] = result.value;
           validNames.push(name);
         } else {
@@ -195,7 +191,7 @@ export default function ResumeModal({ isOpen, onClose }) {
       });
 
       setPackageName(data.package_name);
-      setSelectedProjectId(data.pursuit_id || data.selected_project_id || "");
+      setSelectedProjectId(data.pursuit_id || data.selected_project_id || '');
       setIncludePackagePages(data.include_package_pages ?? true);
       setSelectedNames(validNames);
       setSelections(data.selections || {});
@@ -203,11 +199,11 @@ export default function ResumeModal({ isOpen, onClose }) {
 
       if (missing.length > 0) {
         setError(
-          `Note: ${missing.join(", ")} no longer found in workbook and ${missing.length === 1 ? "was" : "were"} removed from the team.`,
+          `Note: ${missing.join(', ')} no longer found in workbook and ${missing.length === 1 ? 'was' : 'were'} removed from the team.`
         );
       }
 
-      setStep("configure");
+      setStep('configure');
     } catch (loadError) {
       setError(loadError.message);
     }
@@ -216,7 +212,7 @@ export default function ResumeModal({ isOpen, onClose }) {
   const _doSaveAndGenerate = async (slug) => {
     try {
       await apiFetch(`/api/sessions/${encodeURIComponent(slug)}`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({
           pursuit_id: selectedProjectId || slug,
           package_name: packageName,
@@ -240,8 +236,8 @@ export default function ResumeModal({ isOpen, onClose }) {
         };
       });
 
-      const response = await apiFetch("/api/generate", {
-        method: "POST",
+      const response = await apiFetch('/api/generate', {
+        method: 'POST',
         body: JSON.stringify({
           package_name: packageName,
           selected_project_id: selectedProjectId || null,
@@ -253,7 +249,7 @@ export default function ResumeModal({ isOpen, onClose }) {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.detail || "Failed to start generation.");
+        throw new Error(data.detail || 'Failed to start generation.');
       }
 
       setGenerationJobId(data.job_id);
@@ -266,20 +262,20 @@ export default function ResumeModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const handleNext = async () => {
-    setError("");
+    setError('');
 
-    if (step === "package") {
+    if (step === 'package') {
       if (!packageName.trim()) {
-        setError("Package name is required.");
+        setError('Package name is required.');
         return;
       }
-      setStep("people");
+      setStep('people');
       return;
     }
 
-    if (step === "people") {
+    if (step === 'people') {
       if (selectedNames.length === 0) {
-        setError("Select at least one team member.");
+        setError('Select at least one team member.');
         return;
       }
 
@@ -288,18 +284,14 @@ export default function ResumeModal({ isOpen, onClose }) {
         try {
           const results = await Promise.all(
             missing.map((name) =>
-              apiFetch(`/api/people/${encodeURIComponent(name)}/data`).then(
-                async (response) => {
-                  const data = await response.json();
-                  if (!response.ok) {
-                    throw new Error(
-                      data.detail || `Failed to load data for ${name}`,
-                    );
-                  }
-                  return data;
-                },
-              ),
-            ),
+              apiFetch(`/api/people/${encodeURIComponent(name)}/data`).then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) {
+                  throw new Error(data.detail || `Failed to load data for ${name}`);
+                }
+                return data;
+              })
+            )
           );
 
           const nextPersonData = { ...personData };
@@ -310,18 +302,14 @@ export default function ResumeModal({ isOpen, onClose }) {
             if (!nextSelections[person.name]) {
               nextSelections[person.name] = {
                 projects: person.projects.map((project) => project.key),
-                education_indices: person.education.map(
-                  (_, index) => index + 1,
-                ),
+                education_indices: person.education.map((_, index) => index + 1),
               };
             }
           });
 
           setPersonData(nextPersonData);
           setSelections(nextSelections);
-          setSelectedNames((currentNames) =>
-            sortNamesByRank(currentNames, nextPersonData),
-          );
+          setSelectedNames((currentNames) => sortNamesByRank(currentNames, nextPersonData));
         } catch (loadError) {
           setError(loadError.message);
           return;
@@ -329,33 +317,29 @@ export default function ResumeModal({ isOpen, onClose }) {
       }
 
       if (missing.length === 0) {
-        const peopleByName = Object.fromEntries(
-          allPeople.map((person) => [person.name, person]),
-        );
-        setSelectedNames((currentNames) =>
-          sortNamesByRank(currentNames, peopleByName),
-        );
+        const peopleByName = Object.fromEntries(allPeople.map((person) => [person.name, person]));
+        setSelectedNames((currentNames) => sortNamesByRank(currentNames, peopleByName));
       }
 
-      setStep("configure");
+      setStep('configure');
     }
   };
 
   const goBack = () => {
-    setError("");
-    if (step === "people") {
-      setStep("package");
+    setError('');
+    if (step === 'people') {
+      setStep('package');
       return;
     }
-    if (step === "configure") {
-      setStep("people");
+    if (step === 'configure') {
+      setStep('people');
     }
   };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    setError("");
-    setGenerationJobId("");
+    setError('');
+    setGenerationJobId('');
     setShowGenerationSuccess(false);
 
     const slug = slugify(packageName);
@@ -386,17 +370,15 @@ export default function ResumeModal({ isOpen, onClose }) {
                   <div key={currentStep} className="flex items-center gap-2">
                     <div
                       className={`h-2 w-2 rounded-full transition-colors ${
-                        index <= stepIndex
-                          ? "bg-[var(--accent-main)]"
-                          : "bg-[var(--border-main)]"
+                        index <= stepIndex ? 'bg-[var(--accent-main)]' : 'bg-[var(--border-main)]'
                       }`}
                     />
                     {index < STEPS.length - 1 ? (
                       <div
                         className={`h-px w-6 transition-colors ${
                           index < stepIndex
-                            ? "bg-[var(--accent-main)] opacity-50"
-                            : "bg-[var(--border-main)] opacity-30"
+                            ? 'bg-[var(--accent-main)] opacity-50'
+                            : 'bg-[var(--border-main)] opacity-30'
                         }`}
                       />
                     ) : null}
@@ -442,8 +424,8 @@ export default function ResumeModal({ isOpen, onClose }) {
                       <span>Processing Word templates and data...</span>
                     </div>
                     <p className="mt-2 text-base text-[var(--text-muted)] leading-relaxed">
-                      This typically takes 5-10 seconds depending on the team
-                      size and number of projects selected.
+                      This typically takes 5-10 seconds depending on the team size and number of
+                      projects selected.
                     </p>
                   </div>
                 </div>
@@ -493,7 +475,7 @@ export default function ResumeModal({ isOpen, onClose }) {
                   onClick={() => {
                     setShowGenerationSuccess(false);
                     setCompletedJob(null);
-                    setStep("package");
+                    setStep('package');
                   }}
                   type="button"
                 >
@@ -502,7 +484,7 @@ export default function ResumeModal({ isOpen, onClose }) {
               </div>
             ) : (
               <>
-                {step === "package" && (
+                {step === 'package' && (
                   <StepPackage
                     onLoadSave={handleLoadSave}
                     onSelectProject={handleProjectSelection}
@@ -513,7 +495,7 @@ export default function ResumeModal({ isOpen, onClose }) {
                   />
                 )}
 
-                {step === "people" && (
+                {step === 'people' && (
                   <StepPeople
                     allPeople={allPeople}
                     onChangeSelected={setSelectedNames}
@@ -521,7 +503,7 @@ export default function ResumeModal({ isOpen, onClose }) {
                   />
                 )}
 
-                {step === "configure" && (
+                {step === 'configure' && (
                   <StepPersonConfig
                     onChangeSelectedNames={setSelectedNames}
                     onChangeSelections={setSelections}
@@ -540,9 +522,9 @@ export default function ResumeModal({ isOpen, onClose }) {
             <div className="flex items-center justify-between gap-4">
               <button
                 className={`text-base font-medium transition ${
-                  step === "package"
-                    ? "invisible"
-                    : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                  step === 'package'
+                    ? 'invisible'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
                 onClick={goBack}
                 type="button"
@@ -550,21 +532,21 @@ export default function ResumeModal({ isOpen, onClose }) {
                 Back
               </button>
               <div className="flex items-center gap-3">
-                {step === "configure" ? (
+                {step === 'configure' ? (
                   <button
                     className="rounded-[var(--radius-sm)] bg-[var(--accent-main)] px-8 py-3 text-base font-semibold text-[var(--accent-text)] shadow-lg transition hover:bg-[var(--accent-hover)] disabled:bg-[var(--border-main)] disabled:text-[var(--text-muted)] disabled:shadow-none"
                     disabled={selectedNames.length === 0 || isGenerating}
                     onClick={handleGenerate}
                     type="button"
                   >
-                    {isGenerating ? "Generating..." : "Generate Resumes"}
+                    {isGenerating ? 'Generating...' : 'Generate Resumes'}
                   </button>
                 ) : (
                   <button
                     className="rounded-[var(--radius-sm)] bg-[var(--accent-main)] px-8 py-3 text-base font-semibold text-[var(--accent-text)] shadow-lg transition hover:bg-[var(--accent-hover)] disabled:bg-[var(--border-main)] disabled:text-[var(--text-muted)] disabled:shadow-none"
                     disabled={
-                      (step === "package" && !packageName.trim()) ||
-                      (step === "people" && selectedNames.length === 0)
+                      (step === 'package' && !packageName.trim()) ||
+                      (step === 'people' && selectedNames.length === 0)
                     }
                     onClick={handleNext}
                     type="button"

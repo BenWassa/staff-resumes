@@ -1,15 +1,15 @@
-import { signOut } from "firebase/auth";
-import { LogOut } from "lucide-react";
-import { auth } from "../firebase";
-import { useAuth } from "../contexts/AuthContext";
-import ResumeModal from "../components/ResumeModal";
+import { signOut } from 'firebase/auth';
+import { LogOut } from 'lucide-react';
+import { auth } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
+import ResumeModal from '../components/ResumeModal';
 
 export default function AdminPage() {
   const { user } = useAuth();
 
   async function handleSignOut() {
     await signOut(auth);
-    window.location.href = "/login";
+    window.location.href = '/login';
   }
 
   return (

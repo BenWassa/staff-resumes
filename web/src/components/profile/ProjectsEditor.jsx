@@ -1,23 +1,15 @@
-import { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  doc,
-  orderBy,
-  query,
-} from "firebase/firestore";
-import { ChevronDown, ChevronUp, Plus, CheckCircle2, Loader2 } from "lucide-react";
-import { db } from "../../firebase";
+import { useEffect, useState } from 'react';
+import { collection, getDocs, setDoc, deleteDoc, doc, orderBy, query } from 'firebase/firestore';
+import { ChevronDown, ChevronUp, Plus, CheckCircle2, Loader2 } from 'lucide-react';
+import { db } from '../../firebase';
 
 const BLANK_PROJECT = {
-  key: "",
-  client: "",
-  title: "",
-  description: "",
-  start_date: "",
-  end_date: "",
+  key: '',
+  client: '',
+  title: '',
+  description: '',
+  start_date: '',
+  end_date: '',
 };
 
 export default function ProjectsEditor({ staffId }) {
@@ -34,10 +26,7 @@ export default function ProjectsEditor({ staffId }) {
 
   useEffect(() => {
     async function load() {
-      const q = query(
-        collection(db, "staff", staffId, "projects"),
-        orderBy("order")
-      );
+      const q = query(collection(db, 'staff', staffId, 'projects'), orderBy('order'));
       const snap = await getDocs(q);
       const loaded = snap.docs.map((d, i) => ({ ...d.data(), _order: i }));
       setProjects(loaded);
@@ -47,9 +36,7 @@ export default function ProjectsEditor({ staffId }) {
   }, [staffId]);
 
   function updateField(key, field, value) {
-    setProjects((prev) =>
-      prev.map((p) => (p.key === key ? { ...p, [field]: value } : p))
-    );
+    setProjects((prev) => prev.map((p) => (p.key === key ? { ...p, [field]: value } : p)));
   }
 
   async function saveProject(project) {
@@ -57,7 +44,7 @@ export default function ProjectsEditor({ staffId }) {
     setErrors((e) => ({ ...e, [project.key]: null }));
     try {
       const order = projects.findIndex((p) => p.key === project.key) + 1;
-      await setDoc(doc(db, "staff", staffId, "projects", project.key), {
+      await setDoc(doc(db, 'staff', staffId, 'projects', project.key), {
         ...project,
         order,
         updated_at: new Date(),
@@ -65,7 +52,7 @@ export default function ProjectsEditor({ staffId }) {
       setSavedKey(project.key);
       setTimeout(() => setSavedKey(null), 2000);
     } catch {
-      setErrors((e) => ({ ...e, [project.key]: "Save failed. Try again." }));
+      setErrors((e) => ({ ...e, [project.key]: 'Save failed. Try again.' }));
     } finally {
       setSavingKey(null);
     }
@@ -73,10 +60,10 @@ export default function ProjectsEditor({ staffId }) {
 
   async function confirmDelete(key) {
     try {
-      await deleteDoc(doc(db, "staff", staffId, "projects", key));
+      await deleteDoc(doc(db, 'staff', staffId, 'projects', key));
       setProjects((prev) => prev.filter((p) => p.key !== key));
     } catch {
-      setErrors((e) => ({ ...e, [key]: "Delete failed. Try again." }));
+      setErrors((e) => ({ ...e, [key]: 'Delete failed. Try again.' }));
     } finally {
       setDeletingKey(null);
     }
@@ -87,8 +74,8 @@ export default function ProjectsEditor({ staffId }) {
     setAddSaving(true);
     try {
       const order = projects.length + 1;
-      const proj = { ...newProject, order, date_range: "", updated_at: new Date() };
-      await setDoc(doc(db, "staff", staffId, "projects", newProject.key), proj);
+      const proj = { ...newProject, order, date_range: '', updated_at: new Date() };
+      await setDoc(doc(db, 'staff', staffId, 'projects', newProject.key), proj);
       setProjects((prev) => [...prev, proj]);
       setNewProject(BLANK_PROJECT);
       setAdding(false);
@@ -136,20 +123,31 @@ export default function ProjectsEditor({ staffId }) {
             >
               <div className="min-w-0">
                 <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                  {project.title || <span className="italic text-[var(--text-muted)]">Untitled project</span>}
+                  {project.title || (
+                    <span className="italic text-[var(--text-muted)]">Untitled project</span>
+                  )}
                 </p>
                 <p className="text-xs text-[var(--text-muted)] truncate">
-                  {project.client}{project.client && project.key ? " · " : ""}{project.key}
+                  {project.client}
+                  {project.client && project.key ? ' · ' : ''}
+                  {project.key}
                 </p>
               </div>
-              {isOpen ? <ChevronUp size={16} className="shrink-0 text-[var(--text-muted)]" /> : <ChevronDown size={16} className="shrink-0 text-[var(--text-muted)]" />}
+              {isOpen ? (
+                <ChevronUp size={16} className="shrink-0 text-[var(--text-muted)]" />
+              ) : (
+                <ChevronDown size={16} className="shrink-0 text-[var(--text-muted)]" />
+              )}
             </button>
 
             {/* Expanded form */}
             {isOpen && (
               <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)]">
                 <div className="pt-3 grid grid-cols-2 gap-3">
-                  <ProjectField label="Project Key" hint="Used to match projects in resumes — changing it may break saved sessions.">
+                  <ProjectField
+                    label="Project Key"
+                    hint="Used to match projects in resumes — changing it may break saved sessions."
+                  >
                     <input
                       type="text"
                       value={project.key}
@@ -161,7 +159,7 @@ export default function ProjectsEditor({ staffId }) {
                     <input
                       type="text"
                       value={project.client}
-                      onChange={(e) => updateField(project.key, "client", e.target.value)}
+                      onChange={(e) => updateField(project.key, 'client', e.target.value)}
                       className={inputCls}
                     />
                   </ProjectField>
@@ -171,7 +169,7 @@ export default function ProjectsEditor({ staffId }) {
                   <input
                     type="text"
                     value={project.title}
-                    onChange={(e) => updateField(project.key, "title", e.target.value)}
+                    onChange={(e) => updateField(project.key, 'title', e.target.value)}
                     className={inputCls}
                   />
                 </ProjectField>
@@ -179,7 +177,7 @@ export default function ProjectsEditor({ staffId }) {
                 <ProjectField label="Description" hint="Exact text that appears in the resume.">
                   <textarea
                     value={project.description}
-                    onChange={(e) => updateField(project.key, "description", e.target.value)}
+                    onChange={(e) => updateField(project.key, 'description', e.target.value)}
                     rows={4}
                     className={`${inputCls} resize-y`}
                   />
@@ -190,16 +188,16 @@ export default function ProjectsEditor({ staffId }) {
                     <input
                       type="text"
                       value={project.start_date}
-                      onChange={(e) => updateField(project.key, "start_date", e.target.value)}
+                      onChange={(e) => updateField(project.key, 'start_date', e.target.value)}
                       className={inputCls}
                       placeholder="Jan 2023"
                     />
                   </ProjectField>
-                  <ProjectField label="End Date" hint='Leave blank if ongoing'>
+                  <ProjectField label="End Date" hint="Leave blank if ongoing">
                     <input
                       type="text"
                       value={project.end_date}
-                      onChange={(e) => updateField(project.key, "end_date", e.target.value)}
+                      onChange={(e) => updateField(project.key, 'end_date', e.target.value)}
                       className={inputCls}
                       placeholder="Dec 2024"
                     />
@@ -215,7 +213,7 @@ export default function ProjectsEditor({ staffId }) {
                     disabled={isSaving}
                     className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-4 py-1.5 rounded-[var(--radius)] transition-opacity"
                   >
-                    {isSaving ? "Saving…" : "Save project"}
+                    {isSaving ? 'Saving…' : 'Save project'}
                   </button>
 
                   {isSaved && (
@@ -299,11 +297,14 @@ export default function ProjectsEditor({ staffId }) {
               disabled={!newProject.key.trim() || addSaving}
               className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-4 py-1.5 rounded-[var(--radius)] transition-opacity"
             >
-              {addSaving ? "Adding…" : "Add project"}
+              {addSaving ? 'Adding…' : 'Add project'}
             </button>
             <button
               type="button"
-              onClick={() => { setAdding(false); setNewProject(BLANK_PROJECT); }}
+              onClick={() => {
+                setAdding(false);
+                setNewProject(BLANK_PROJECT);
+              }}
               className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             >
               Cancel
@@ -336,4 +337,4 @@ function ProjectField({ label, hint, children }) {
 }
 
 const inputCls =
-  "w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-[var(--radius)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--blc-red)] transition-colors";
+  'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-[var(--radius)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--blc-red)] transition-colors';

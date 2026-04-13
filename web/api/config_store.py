@@ -45,7 +45,9 @@ def save_config(data: dict) -> None:
     config_dir = _config_dir()
     config_dir.mkdir(parents=True, exist_ok=True)
     config_path = _config_path()
-    config_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    config_path.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def get_pursuits_root() -> Path | None:

@@ -8,6 +8,10 @@ import threading
 import uuid
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -122,14 +126,17 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
         completed_steps = event.get("completed_steps", 0)
 
         if event_type == "started":
-            _store_job(job_id, {
-                "status": "running",
-                "message": "Preparing resume generation",
-                "completed_steps": completed_steps,
-                "total_steps": total_steps,
-                "percent": _job_percent(completed_steps, total_steps),
-                "current_step": None,
-            })
+            _store_job(
+                job_id,
+                {
+                    "status": "running",
+                    "message": "Preparing resume generation",
+                    "completed_steps": completed_steps,
+                    "total_steps": total_steps,
+                    "percent": _job_percent(completed_steps, total_steps),
+                    "current_step": None,
+                },
+            )
             return
 
         if event_type in {"step_started", "step_completed"}:
@@ -137,11 +144,13 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
             if event_type == "step_completed":
                 with JOB_LOCK:
                     existing = list(JOBS.get(job_id, {}).get("step_history", []))
-                existing.append({
-                    "type": event.get("step_type"),
-                    "person_name": event.get("person_name"),
-                    "label": event.get("label"),
-                })
+                existing.append(
+                    {
+                        "type": event.get("step_type"),
+                        "person_name": event.get("person_name"),
+                        "label": event.get("label"),
+                    }
+                )
                 step_history = existing
             updates = {
                 "status": "running",
@@ -153,7 +162,9 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
                     "type": event.get("step_type"),
                     "person_name": event.get("person_name"),
                     "label": event.get("label"),
-                    "status": "completed" if event_type == "step_completed" else "running",
+                    "status": "completed"
+                    if event_type == "step_completed"
+                    else "running",
                 },
             }
             if step_history is not None:
@@ -165,16 +176,19 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
             counts = event.get("counts", {})
             individual_urls = event.get("individual_urls", {})
             consolidated_url = event.get("consolidated_url")
-            _store_job(job_id, {
-                "status": "completed",
-                "message": "Generation complete",
-                "completed_steps": total_steps,
-                "total_steps": total_steps,
-                "percent": 100,
-                "counts": counts,
-                "individual_urls": individual_urls,
-                "consolidated_url": consolidated_url,
-            })
+            _store_job(
+                job_id,
+                {
+                    "status": "completed",
+                    "message": "Generation complete",
+                    "completed_steps": total_steps,
+                    "total_steps": total_steps,
+                    "percent": 100,
+                    "counts": counts,
+                    "individual_urls": individual_urls,
+                    "consolidated_url": consolidated_url,
+                },
+            )
 
     try:
         result = generate(
@@ -188,11 +202,14 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
         )
         on_progress({"event": "completed", **result})
     except Exception as exc:
-        _store_job(job_id, {
-            "status": "failed",
-            "message": str(exc),
-            "error": str(exc),
-        })
+        _store_job(
+            job_id,
+            {
+                "status": "failed",
+                "message": str(exc),
+                "error": str(exc),
+            },
+        )
 
 
 # ── People endpoints ───────────────────────────────────────────────────────────
@@ -218,20 +235,25 @@ def api_person_data(name: str, token: dict = Depends(verify_token)):
 
 
 @app.post("/api/generate")
-def api_generate(body: GenerateRequest, token: dict = Depends(verify_token)) -> GenerateStartResponse:
+def api_generate(
+    body: GenerateRequest, token: dict = Depends(verify_token)
+) -> GenerateStartResponse:
     job_id = uuid.uuid4().hex
     total_steps = _expected_total_steps(body)
-    _store_job(job_id, {
-        "status": "queued",
-        "message": "Queued",
-        "completed_steps": 0,
-        "total_steps": total_steps,
-        "percent": 0,
-        "individual_urls": {},
-        "consolidated_url": None,
-        "counts": {"individual": 0, "consolidated": 0, "total": 0},
-        "step_history": [],
-    })
+    _store_job(
+        job_id,
+        {
+            "status": "queued",
+            "message": "Queued",
+            "completed_steps": 0,
+            "total_steps": total_steps,
+            "percent": 0,
+            "individual_urls": {},
+            "consolidated_url": None,
+            "counts": {"individual": 0, "consolidated": 0, "total": 0},
+            "step_history": [],
+        },
+    )
     worker = threading.Thread(
         target=_run_generation_job, args=(job_id, body), daemon=True
     )
@@ -255,6 +277,7 @@ def api_generate_status(job_id: str, token: dict = Depends(verify_token)):
 def api_list_pursuits(token: dict = Depends(verify_token)):
     """List all pursuits from Firestore."""
     from firebase_admin import firestore
+
     db = firestore.client()
     docs = db.collection("pursuits").order_by("display_name").stream()
     return [{"id": d.id, **d.to_dict()} for d in docs]
@@ -265,15 +288,21 @@ def api_create_pursuit(body: PursuitCreate, token: dict = Depends(require_admin)
     """Admin: create a new pursuit entry."""
     from firebase_admin import firestore
     import re
+
     db = firestore.client()
-    pursuit_id = re.sub(r"[^a-z0-9]+", "-", body.display_name.lower()).strip("-") or uuid.uuid4().hex
+    pursuit_id = (
+        re.sub(r"[^a-z0-9]+", "-", body.display_name.lower()).strip("-")
+        or uuid.uuid4().hex
+    )
     ref = db.collection("pursuits").document(pursuit_id)
-    ref.set({
-        "display_name": body.display_name,
-        "client": body.client,
-        "engagement_number": body.engagement_number,
-        "created_at": firestore.SERVER_TIMESTAMP,
-    })
+    ref.set(
+        {
+            "display_name": body.display_name,
+            "client": body.client,
+            "engagement_number": body.engagement_number,
+            "created_at": firestore.SERVER_TIMESTAMP,
+        }
+    )
     return {"id": pursuit_id, **body.model_dump()}
 
 
@@ -284,6 +313,7 @@ def api_create_pursuit(body: PursuitCreate, token: dict = Depends(require_admin)
 def api_list_sessions(token: dict = Depends(verify_token)):
     """List saved sessions — admins see all, members see their own."""
     from firebase_admin import firestore
+
     db = firestore.client()
     uid = token["uid"]
 
@@ -292,7 +322,12 @@ def api_list_sessions(token: dict = Depends(verify_token)):
     is_admin = user_doc.exists and user_doc.to_dict().get("role") == "admin"
 
     if is_admin:
-        docs = db.collection("sessions").order_by("saved_at", direction=firestore.Query.DESCENDING).limit(50).stream()
+        docs = (
+            db.collection("sessions")
+            .order_by("saved_at", direction=firestore.Query.DESCENDING)
+            .limit(50)
+            .stream()
+        )
     else:
         docs = (
             db.collection("sessions")
@@ -308,6 +343,7 @@ def api_list_sessions(token: dict = Depends(verify_token)):
 @app.get("/api/sessions/{session_id}")
 def api_get_session(session_id: str, token: dict = Depends(verify_token)):
     from firebase_admin import firestore
+
     db = firestore.client()
     doc = db.collection("sessions").document(session_id).get()
     if not doc.exists:
@@ -316,13 +352,18 @@ def api_get_session(session_id: str, token: dict = Depends(verify_token)):
 
 
 @app.post("/api/sessions/{session_id}")
-def api_save_session(session_id: str, body: SessionPayload, token: dict = Depends(verify_token)):
+def api_save_session(
+    session_id: str, body: SessionPayload, token: dict = Depends(verify_token)
+):
     from firebase_admin import firestore
     import datetime
+
     db = firestore.client()
-    db.collection("sessions").document(session_id).set({
-        **body.model_dump(),
-        "saved_by": token["uid"],
-        "saved_at": datetime.datetime.utcnow().isoformat(),
-    })
+    db.collection("sessions").document(session_id).set(
+        {
+            **body.model_dump(),
+            "saved_by": token["uid"],
+            "saved_at": datetime.datetime.utcnow().isoformat(),
+        }
+    )
     return {"ok": True}
