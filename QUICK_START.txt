@@ -1,0 +1,105 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║                   RESUME GENERATOR - QUICK START                        ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+BEFORE YOU START:
+  ✓ Install Node.js from https://nodejs.org/
+  ✓ Install Python from https://www.python.org/
+  ✓ Make sure both are in your PATH (check during installation)
+
+═══════════════════════════════════════════════════════════════════════════
+
+METHOD 1: DOUBLE-CLICK (Easiest) ⭐ RECOMMENDED
+
+  1. In this folder, find "Launch-App.vbs"
+  2. Double-click it
+  3. Wait for the app to open (first time takes ~15 seconds)
+  4. Your Resume Generator app is ready!
+
+═══════════════════════════════════════════════════════════════════════════
+
+METHOD 2: RIGHT-CLICK & RUN
+
+  1. In this folder, find "Launch-App.ps1"
+  2. Right-click → "Run with PowerShell"
+  3. Wait for the app to open
+  4. Your Resume Generator app is ready!
+
+═══════════════════════════════════════════════════════════════════════════
+
+METHOD 3: MANUAL (For developers)
+
+  1. Open PowerShell or Command Prompt
+  2. Navigate to this folder
+  3. Type: .\Launch-App.ps1
+  4. Press Enter
+  5. Wait for the app to open
+
+═══════════════════════════════════════════════════════════════════════════
+
+FIRST RUN SETUP (Automatic):
+
+  The app will automatically:
+  ✓ Check that Node.js and Python are installed
+  ✓ Install Node.js dependencies (takes ~1-2 minutes)
+  ✓ Create a Python virtual environment
+  ✓ Install Python dependencies
+  ✓ Start the app
+
+  This only happens ONCE. Future launches are much faster (~5-10 seconds).
+
+═══════════════════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING:
+
+  Q: "Node.js not found"
+  A: Install Node.js from https://nodejs.org/ and restart PowerShell
+
+  Q: "Python not found"
+  A: Install Python from https://www.python.org/ and restart PowerShell
+     (Check "Add Python to PATH" during installation)
+
+  Q: "Port 8002 already in use"
+  A: Another app is using that port. Restart your computer or:
+     - Open Task Manager
+     - Find and end the "python" process
+     - Try launching again
+
+  Q: The app window won't open
+  A: 1. Make sure Node.js and Python are installed
+     2. Try closing and re-running the launcher
+     3. Check the terminal for error messages
+
+═══════════════════════════════════════════════════════════════════════════
+
+DATA FOLDERS:
+
+  When you launch the app, you'll specify:
+  • _generated folder (where generated files go)
+  • person_workbooks folder (where individual workbooks are)
+
+  You can browse to these from within the app - no command line needed!
+
+═══════════════════════════════════════════════════════════════════════════
+
+WHAT'S HAPPENING BEHIND THE SCENES:
+
+  The app runs both a frontend (React) and backend (Python FastAPI):
+
+  Frontend: Your Resume Generator interface
+  Backend: Handles generation and data processing
+
+  Both are started automatically and communicate together.
+
+═══════════════════════════════════════════════════════════════════════════
+
+NEED HELP?
+
+  See these files for more information:
+  • README_ELECTRON.md - Complete documentation
+  • ELECTRON_SETUP.md - Detailed setup guide
+  • ELECTRON_SETUP_SUMMARY.md - What was created
+
+═══════════════════════════════════════════════════════════════════════════
+
+Ready? Double-click Launch-App.vbs and let's go! 🚀
