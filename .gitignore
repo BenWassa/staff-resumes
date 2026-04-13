@@ -1,0 +1,17 @@
+/.claude
+/.venv
+/node_modules
+/web/node_modules/
+**/.vite/
+/blackline-style-guide-lean.md
+/outputs
+/templates
+/_archive
+/_extraction_archive
+/data/CSVs/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+web/dist/
+web/_pytest_cache/

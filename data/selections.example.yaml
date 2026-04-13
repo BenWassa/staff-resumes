@@ -1,0 +1,42 @@
+# selections.example.yaml — illustrative example (not a real package)
+#
+# Shows a realistic three-person team with varied project lists.
+# Copy to selections.yaml and swap in real project keys to use it.
+
+people:
+  - name: Ian Shelley
+    projects:
+      - key: city_of_brantford_customer_experience_strategy_review
+        order: 1
+      - key: town_of_whitby_customer_service_strategy
+        order: 2
+      - key: city_of_cambridge_service_delivery_review
+        order: 3
+      - key: city_of_oshawa_customer_service_strategy
+        order: 4
+
+  - name: Graham Pressey
+    projects:
+      - key: city_of_brampton_customer_experience_strategy_and_action_plan
+        order: 1
+      - key: town_of_ajax_customer_experience_strategy
+        order: 2
+      - key: city_of_cambridge_enhanced_customer_service_strategy
+        order: 3
+      - key: municipality_of_middlesex_centre_customer_service_strategy
+        order: 4
+
+  - name: Benjamin Haddon
+    projects:
+      - key: town_of_whitby_municipal_service_review
+        order: 1
+      - key: home_on_the_hill_marketing_strategy_review
+        order: 2
+      - key: ontario_health_workflow_automation
+        order: 3
+
+consolidated:
+  include:
+    - Ian Shelley
+    - Graham Pressey
+    - Benjamin Haddon

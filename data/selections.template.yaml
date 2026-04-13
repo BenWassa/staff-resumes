@@ -1,0 +1,36 @@
+# selections.yaml — Resume Generator quick-load template
+#
+# Drop this file (or a copy of it) at data/selections.yaml and click
+# "Import from selections.yaml" in the UI to pre-populate the team
+# and project selections without clicking through the wizard manually.
+#
+# Required fields:   name, projects[].key
+# Optional fields:   everything else (omit any section you don't need)
+
+people:
+  # ── Person entry ────────────────────────────────────────────────────────────
+  - name: Full Name As In Workbook     # must match the workbook sheet name exactly
+    projects:
+      # List the project keys you want included, in the order they should appear.
+      # Keys must match the "Project Key" column in the workbook.
+      # The UI lets you reorder further after import.
+      - key: project_key_one
+        order: 1
+      - key: project_key_two
+        order: 2
+      - key: project_key_three
+        order: 3
+
+  # ── Add more people below ────────────────────────────────────────────────────
+  - name: Another Person
+    projects:
+      - key: some_other_project_key
+        order: 1
+
+# ── Consolidated resume ──────────────────────────────────────────────────────
+# Controls which people appear in the consolidated package and in what order.
+# Must use the same names as above. Omit this section to include everyone.
+consolidated:
+  include:
+    - Full Name As In Workbook
+    - Another Person

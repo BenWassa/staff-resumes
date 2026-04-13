@@ -1,0 +1,86 @@
+# Oakville RFP — Demo selections
+# Curated project experience for a municipal service delivery proposal.
+
+people:
+  - name: Ian Shelley
+    output: individual
+    first_name: Ian
+    last_name: Shelley
+    title: ""
+    summary: ""
+    education: []
+    projects:
+      - key: city_of_brantford_customer_experience_strategy_review
+        order: 1
+      - key: town_of_whitby_customer_service_strategy
+        order: 2
+      - key: town_of_ajax_customer_service_strategy
+        order: 3
+      - key: city_of_cambridge_service_delivery_review
+        order: 4
+      - key: city_of_oshawa_customer_service_strategy
+        order: 5
+      - key: township_of_scugog_service_delivery_and_organizational_review
+        order: 6
+
+  - name: Graham Pressey
+    output: individual
+    first_name: Graham
+    last_name: Pressey
+    title: ""
+    summary: ""
+    education: []
+    projects:
+      - key: city_of_brampton_customer_experience_strategy_and_action_plan
+        order: 1
+      - key: town_of_whitby_customer_service_technology_strategy
+        order: 2
+      - key: town_of_ajax_customer_experience_strategy
+        order: 3
+      - key: city_of_cambridge_enhanced_customer_service_strategy
+        order: 4
+      - key: municipality_of_middlesex_centre_customer_service_strategy
+        order: 5
+      - key: oakville_public_library_community_services_study
+        order: 6
+
+  - name: John Connolly
+    output: individual
+    first_name: John
+    last_name: Connolly
+    title: ""
+    summary: ""
+    education: []
+    projects:
+      - key: city_of_brampton_customer_experience_strategy_and_action
+        order: 1
+      - key: town_of_whitby_core_services_review
+        order: 2
+      - key: town_of_ajax_customer_service_strategy
+        order: 3
+      - key: city_of_cambridge_customer_service_review
+        order: 4
+      - key: municipality_of_middlesex_centre_customer_service_strategy
+        order: 5
+      - key: township_of_scugog_organizational_review
+        order: 6
+
+  - name: Benjamin Haddon
+    output: individual
+    first_name: Benjamin
+    last_name: Haddon
+    title: ""
+    summary: ""
+    education: []
+    projects:
+      - key: town_of_whitby_municipal_service_review
+        order: 1
+      - key: ontario_health_workflow_automation
+        order: 2
+
+consolidated:
+  include:
+    - Ian Shelley
+    - Graham Pressey
+    - John Connolly
+    - Benjamin Haddon
