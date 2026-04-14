@@ -25,6 +25,18 @@ if (-not (Test-Command "python")) {
     exit 1
 }
 
+function Test-PortInUse($port) {
+    $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    return $null -ne $conn
+}
+
+if (Test-PortInUse 5174) {
+    Write-Host "Warning: Port 5174 is already in use. Vite may fail to start." -ForegroundColor Yellow
+}
+if (Test-PortInUse 8012) {
+    Write-Host "Warning: Port 8012 is already in use. The API server may fail to start." -ForegroundColor Yellow
+}
+
 Write-Host "Starting Staff Resumes local site..." -ForegroundColor Cyan
 Write-Host "Frontend: http://localhost:5174" -ForegroundColor Yellow
 Write-Host "API: http://localhost:8012" -ForegroundColor Yellow
@@ -53,12 +65,16 @@ if (-not (Test-Path $venvPip)) {
     exit 1
 }
 
+$requirementsFile = Join-Path $repoRoot "requirements.txt"
 $requirementsStamp = Join-Path $webDir "venv\.requirements-installed"
-if (-not (Test-Path $requirementsStamp)) {
+$requirementsHash = (Get-FileHash $requirementsFile -Algorithm MD5).Hash
+$stampHash = if (Test-Path $requirementsStamp) { Get-Content $requirementsStamp -Raw } else { "" }
+
+if ($requirementsHash.Trim() -ne $stampHash.Trim()) {
     Write-Host "Installing Python dependencies..." -ForegroundColor Cyan
     Push-Location $repoRoot
     & $venvPip install -r requirements.txt
-    New-Item -ItemType File -Path $requirementsStamp -Force | Out-Null
+    Set-Content -Path $requirementsStamp -Value $requirementsHash -NoNewline
     Pop-Location
 }
 
@@ -79,7 +95,11 @@ if (-not $configExists) {
     Write-Host ""
 }
 
-Start-Process "http://localhost:5174"
+# Open browser after a short delay so Vite has time to start
+Start-Job -ScriptBlock {
+    Start-Sleep -Seconds 4
+    Start-Process "http://localhost:5174"
+} | Out-Null
 
 Push-Location $webDir
 npm run dev

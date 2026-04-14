@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "predev": "powershell -Command \"Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*uvicorn web.main:app*--port 8012*' } | Stop-Process -Force; exit 0\"",
+    "predev": "powershell -Command \"$conn = Get-NetTCPConnection -LocalPort 8012 -State Listen -ErrorAction SilentlyContinue; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue }; exit 0\"",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:client\"",
     "dev:api": "powershell -Command \"$appDir = if (Test-Path '.\\\\web\\\\main.py') { '.' } elseif (Test-Path '.\\\\main.py') { '..' } else { '.' }; python -m uvicorn web.main:app --app-dir $appDir --reload --port 8012\"",
     "dev:client": "vite --port 5174",
