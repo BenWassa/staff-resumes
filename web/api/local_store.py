@@ -169,7 +169,7 @@ def _base_person_record(person_name: str, *, overrides: dict[str, dict] | None =
         "first_name": first_name,
         "last_name": last_name,
         "title": data.get("title", ""),
-        "summary": "",
+        "summary": data.get("summary", ""),
         "education": data.get("education", []),
         "projects": data.get("projects", []),
     }

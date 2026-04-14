@@ -42,6 +42,7 @@ def list_people() -> list[dict]:
                     "name": canonical_name,
                     "display_name": canonical_name,
                     "title": profile.get("title", ""),
+                    "summary": profile.get("summary", ""),
                 }
             )
     wb.close()
@@ -92,6 +93,7 @@ def get_person_data(person_name: str) -> dict:
     return {
         "name": person_name,
         "title": profile.get("title", ""),
+        "summary": profile.get("summary", ""),
         "education": education,
         "projects": projects,
     }
