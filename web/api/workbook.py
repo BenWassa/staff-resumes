@@ -19,9 +19,10 @@ from src.runtime_config import get_runtime_config
 
 def _workbook_path() -> Path:
     runtime = get_runtime_config()
-    # In web mode we always refresh the global workbook when configured, so staff
-    # profiles come from the latest person_workbooks source.
-    return resolve_workbook_path(runtime, refresh_if_configured=True)
+    # Read the latest built workbook instead of rebuilding on every API request.
+    # Rebuilds can be triggered separately by the pipeline, and this keeps the
+    # staff list stable across duplicate development requests.
+    return resolve_workbook_path(runtime, refresh_if_configured=False)
 
 
 _ALIAS_REVERSE = {value: key for key, value in PERSON_SHEET_ALIASES.items()}
