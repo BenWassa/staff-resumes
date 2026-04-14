@@ -33,6 +33,11 @@ npm --prefix web run dev
 ```
 Runs backend on `http://localhost:8002` and frontend on `http://localhost:5174`
 
+Convenience from repo root:
+```bash
+npm run dev
+```
+
 ## Local State
 
 The app stores its data under `%APPDATA%/ResumeGenerator/`:

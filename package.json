@@ -1,0 +1,11 @@
+{
+  "name": "staff-resumes-root",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "npm --prefix web run dev",
+    "dev:client": "npm --prefix web run dev:client",
+    "lint": "npm --prefix web run lint",
+    "build": "npm --prefix web run build"
+  }
+}
