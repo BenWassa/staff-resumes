@@ -1,9 +1,11 @@
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams, useNavigate } from 'react-router-dom';
 import { UserRound } from 'lucide-react';
 import ProfileEditorTabs from '../components/profile/ProfileEditorTabs';
+import CloseButton from '../components/CloseButton';
 
 export default function ProfilePage() {
   const { staffId } = useParams();
+  const navigate = useNavigate();
 
   if (!staffId) {
     return <Navigate to="/admin" replace />;
@@ -24,6 +26,12 @@ export default function ProfilePage() {
                 Profile
               </div>
             </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <CloseButton 
+              label="Exit Profile View" 
+              onClick={() => navigate('/admin')} 
+            />
           </div>
         </div>
       </header>
