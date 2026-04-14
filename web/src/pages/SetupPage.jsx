@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, FolderOpen } from 'lucide-react';
 import { apiFetch } from '../utils/apiFetch';
 
 export default function SetupPage() {
@@ -8,6 +8,8 @@ export default function SetupPage() {
   const [pursuitsRoot, setPursuitsRoot] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const canPickFolder =
+    typeof window !== 'undefined' && typeof window.electronAPI?.selectFolder === 'function';
 
   useEffect(() => {
     apiFetch('/api/config/paths')
@@ -23,7 +25,11 @@ export default function SetupPage() {
   async function handleSaveConfig() {
     const trimmed = pursuitsRoot.trim();
     if (!trimmed) {
-      setError('Enter the full Projects folder path.');
+      setError(
+        canPickFolder
+          ? 'Use Browse to select your Pursuits - Documents folder.'
+          : 'Enter the full Projects folder path.',
+      );
       return;
     }
 
@@ -51,13 +57,25 @@ export default function SetupPage() {
     }
   }
 
+  async function handleBrowse() {
+    try {
+      const picked = await window.electronAPI.selectFolder();
+      if (!picked) return;
+      setPursuitsRoot(picked);
+      setError(null);
+    } catch {
+      setError('Could not open folder picker. Enter the path manually.');
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--bg-main)]">
       <div className="w-full max-w-2xl px-6 py-8">
         <div className="mb-8">
           <h1 className="mb-2 text-2xl font-semibold text-[var(--text-primary)]">Setup Required</h1>
           <p className="text-[var(--text-muted)]">
-            Enter the full path to your Projects folder to get started with resume generation.
+            Use Browse to choose your <span className="font-semibold">Pursuits - Documents</span>{' '}
+            folder to get started with resume generation.
           </p>
         </div>
 
@@ -67,32 +85,48 @@ export default function SetupPage() {
               <h2 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">
                 Projects Folder Path
               </h2>
-              <p className="text-sm text-[var(--text-muted)]">
-                Use an absolute path to the folder that contains project directories named like{' '}
+              <p className="break-all text-sm text-[var(--text-muted)]">
+                Find and select <span className="font-medium">Pursuits - Documents</span>, for example{' '}
                 <code className="rounded bg-[var(--bg-secondary)] px-2 py-1 text-xs">
-                  Project Name - YYYYNNN
+                  C:\Users\ben.haddon\OneDrive - Blackline Consulting\Pursuits - Documents
                 </code>
                 .
               </p>
             </div>
 
-            <label className="mb-3 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
-              Full path
-            </label>
-            <input
-              type="text"
-              value={pursuitsRoot}
-              onChange={(e) => setPursuitsRoot(e.target.value)}
-              placeholder="C:\\Company\\Projects"
-              spellCheck={false}
-              autoComplete="off"
-              className="mb-3 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-blue-500"
-            />
+            <div className="mb-3 flex items-center gap-2">
+              <input
+                type="text"
+                value={pursuitsRoot}
+                onChange={canPickFolder ? undefined : (e) => setPursuitsRoot(e.target.value)}
+                placeholder={
+                  canPickFolder
+                    ? 'Use Browse to select your Pursuits - Documents folder'
+                    : 'C:\\Company\\Projects'
+                }
+                spellCheck={false}
+                autoComplete="off"
+                readOnly={canPickFolder}
+                className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-blue-500"
+              />
+              {canPickFolder && (
+                <button
+                  type="button"
+                  onClick={handleBrowse}
+                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-main)]"
+                >
+                  <FolderOpen size={16} />
+                  Browse
+                </button>
+              )}
+            </div>
 
             <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
               <CheckCircle size={18} className="mt-0.5 flex-shrink-0 text-blue-600" />
               <p className="text-xs text-blue-700">
-                Example: <code className="rounded bg-blue-100 px-1">C:\Blackline\Projects</code>
+                Choose the folder named{' '}
+                <code className="rounded bg-blue-100 px-1">Pursuits - Documents</code> (not an
+                individual project subfolder).
               </p>
             </div>
 

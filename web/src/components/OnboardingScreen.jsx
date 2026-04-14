@@ -9,7 +9,8 @@ export default function OnboardingScreen({ onComplete }) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
-  const canPickFolder = typeof window !== 'undefined' && window.electronAPI?.selectFolder;
+  const canPickFolder =
+    typeof window !== 'undefined' && typeof window.electronAPI?.selectFolder === 'function';
 
   async function handleBrowse() {
     const picked = await window.electronAPI.selectFolder();
@@ -18,7 +19,7 @@ export default function OnboardingScreen({ onComplete }) {
     await previewPath(picked);
   }
 
-  async function handleManualInput(e) {
+  function handleManualInput(e) {
     setPickedPath(e.target.value);
     setResolvedPath(null);
     setPreviewError('');
@@ -87,20 +88,24 @@ export default function OnboardingScreen({ onComplete }) {
             Configure Staff Resumes
           </h1>
           <p className="mt-2 text-sm text-[var(--text-header-muted)]">
-            Point the app at your main Pursuits folder and we&apos;ll take care of the rest.
+            Use Browse to select your main <span className="font-semibold">Pursuits - Documents</span>{' '}
+            folder and we&apos;ll take care of the rest.
           </p>
         </div>
 
         <div className="px-8 py-7 space-y-6">
           <div>
             <p className="text-sm leading-relaxed text-[var(--text-main)]">
-              Select your <span className="font-semibold">Pursuits folder</span>, the location that
-              contains all proposal project subfolders. Outputs will be saved inside each project
-              automatically.
+              Select your <span className="font-semibold">Pursuits - Documents</span> folder, the
+              location that contains all proposal project subfolders. Outputs will be saved inside
+              each project automatically.
+            </p>
+            <p className="mt-2 text-xs text-[var(--text-muted)] break-all">
+              Example: <span className="font-mono">C:\Users\ben.haddon\OneDrive - Blackline Consulting\Pursuits - Documents</span>
             </p>
             <p className="mt-2 text-xs text-[var(--text-muted)]">
-              If you accidentally choose a project subfolder, the app will resolve the correct root
-              folder for you.
+              If you accidentally choose a project subfolder, the app will resolve the correct
+              root folder for you.
             </p>
           </div>
 
@@ -109,10 +114,15 @@ export default function OnboardingScreen({ onComplete }) {
               <input
                 type="text"
                 className="input-field flex-1"
-                placeholder="e.g. C:\\Users\\you\\OneDrive - Company\\Pursuits - Documents"
+                placeholder={
+                  canPickFolder
+                    ? 'Use Browse to select your Pursuits - Documents folder'
+                    : 'e.g. C:\\Users\\you\\OneDrive - Company\\Pursuits - Documents'
+                }
                 value={pickedPath}
-                onChange={handleManualInput}
-                onKeyDown={(e) => e.key === 'Enter' && handlePreviewManual()}
+                onChange={canPickFolder ? undefined : handleManualInput}
+                onKeyDown={canPickFolder ? undefined : (e) => e.key === 'Enter' && handlePreviewManual()}
+                readOnly={canPickFolder}
               />
               {canPickFolder ? (
                 <button onClick={handleBrowse} className="button-secondary" title="Browse for folder">

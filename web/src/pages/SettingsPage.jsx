@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, CheckCircle } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle, FolderOpen } from 'lucide-react';
 import { apiFetch } from '../utils/apiFetch';
 
 export default function SettingsPage() {
@@ -11,6 +11,8 @@ export default function SettingsPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
+  const canPickFolder =
+    typeof window !== 'undefined' && typeof window.electronAPI?.selectFolder === 'function';
 
   useEffect(() => {
     apiFetch('/api/config/paths')
@@ -25,7 +27,11 @@ export default function SettingsPage() {
   async function handleSaveConfig() {
     const trimmed = pursuitsRootInput.trim();
     if (!trimmed) {
-      setError('Enter the full Projects folder path.');
+      setError(
+        canPickFolder
+          ? 'Use Browse to select your Pursuits - Documents folder.'
+          : 'Enter the full Projects folder path.',
+      );
       return;
     }
 
@@ -56,6 +62,18 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleBrowse() {
+    try {
+      const picked = await window.electronAPI.selectFolder();
+      if (!picked) return;
+      setPursuitsRootInput(picked);
+      setError(null);
+      setSuccess(null);
+    } catch {
+      setError('Could not open folder picker. Enter the path manually.');
+    }
+  }
+
   return (
     <div className="app-shell">
       <div className="app-shell-header flex items-center justify-between gap-4">
@@ -78,7 +96,7 @@ export default function SettingsPage() {
             <div className="mb-8">
               <h1 className="mb-2 text-2xl font-semibold text-[var(--text-primary)]">Configuration</h1>
               <p className="text-sm text-[var(--text-muted)]">
-                Manage your Projects folder and other local settings.
+                Manage your Pursuits folder and other local settings.
               </p>
             </div>
 
@@ -118,23 +136,43 @@ export default function SettingsPage() {
                 Update Projects Folder
               </h2>
 
-              <label className="mb-3 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
-                Full path
-              </label>
-              <input
-                type="text"
-                value={pursuitsRootInput}
-                onChange={(e) => setPursuitsRootInput(e.target.value)}
-                placeholder="C:\\Company\\Projects"
-                spellCheck={false}
-                autoComplete="off"
-                disabled={loading}
-                className="mb-3 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-blue-500 disabled:opacity-70"
-              />
+              <div className="mb-3 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={pursuitsRootInput}
+                  onChange={canPickFolder ? undefined : (e) => setPursuitsRootInput(e.target.value)}
+                  placeholder={
+                    canPickFolder
+                      ? 'Use Browse to select your Pursuits - Documents folder'
+                      : 'C:\\Company\\Projects'
+                  }
+                  spellCheck={false}
+                  autoComplete="off"
+                  disabled={loading}
+                  readOnly={canPickFolder}
+                  className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-blue-500 disabled:opacity-70"
+                />
+                {canPickFolder && (
+                  <button
+                    type="button"
+                    onClick={handleBrowse}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-main)] disabled:opacity-70"
+                  >
+                    <FolderOpen size={16} />
+                    Browse
+                  </button>
+                )}
+              </div>
 
-              <p className="mb-6 text-xs text-[var(--text-muted)]">
-                Enter the absolute directory that contains folders named like{' '}
-                <code className="rounded bg-[var(--bg-secondary)] px-1">Project Name - YYYYNNN</code>.
+              <p className="mb-6 break-all text-xs text-[var(--text-muted)]">
+                Find and select the folder named{' '}
+                <code className="rounded bg-[var(--bg-secondary)] px-1">Pursuits - Documents</code>{' '}
+                (for example{' '}
+                <code className="rounded bg-[var(--bg-secondary)] px-1">
+                  C:\Users\ben.haddon\OneDrive - Blackline Consulting\Pursuits - Documents
+                </code>
+                ).
               </p>
 
               {error && (
