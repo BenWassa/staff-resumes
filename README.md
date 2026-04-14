@@ -13,6 +13,7 @@
 - [Examples](#examples)
 - [Contributing](#contributing)
 - [Architecture](#architecture)
+- [Advanced](#advanced)
 
 ## ℹ️ Project Information
 
@@ -47,28 +48,11 @@ For detailed step-by-step setup instructions, see [SETUP-GUIDE.md](SETUP-GUIDE.m
 
 ### Web Interface
 
-1. Start the application with `Start-Local.bat` or run `npm run dev` from the root folder
+1. Start the application with `Start-Local.bat`
 2. Your browser will open to `http://localhost:5174`
 3. On first run, configure your Projects folder in the setup wizard
 4. Use the admin panel to manage staff profiles and sync data
 5. Generate resumes directly from the web UI
-
-### Command Line (Pipeline)
-
-For direct pipeline execution without the web UI:
-
-```bash
-python run_pipeline.py
-```
-
-### Development Commands
-
-```bash
-npm run dev          # Start both API (8012) and UI (5174)
-npm run dev:api      # Start API only (port 8012)
-npm run dev:client   # Start UI only (port 5174)
-npm run build        # Build for production
-```
 
 ## Requirements
 
@@ -122,3 +106,26 @@ The application stores all persistent user data under `%APPDATA%/ResumeGenerator
 - **Template customization**: Edit the files in `templates/` to change the look of generated resumes.
 - **Workbook Sync**: The `web/` interface allows you to sync and edit data, which is then used by the `src/` pipeline to generate documents.
 - **No Database**: All data is local to your machine to ensure privacy and speed.
+
+---
+
+## Advanced
+
+### Command Line Interface
+
+#### Development Commands
+
+```bash
+npm run dev          # Start both API (8012) and UI (5174)
+npm run dev:api      # Start API only (port 8012)
+npm run dev:client   # Start UI only (port 5174)
+npm run build        # Build for production
+```
+
+#### Pipeline CLI
+
+For direct pipeline execution without the web UI:
+
+```bash
+python run_pipeline.py
+```
