@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, Plus, CheckCircle2, Loader2 } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { ChevronDown, ChevronUp, Plus, CheckCircle2, Loader2, ArrowUpDown, History } from 'lucide-react';
 import {
   getCachedStaffProfile,
   loadStaffProfile,
@@ -25,6 +25,33 @@ export default function ProjectsEditor({ staffId }) {
   const [newProject, setNewProject] = useState(BLANK_PROJECT);
   const [addSaving, setAddSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [sortConfig, setSortConfig] = useState({ key: 'original', direction: 'asc' });
+
+  const sortedProjects = useMemo(() => {
+    if (sortConfig.key === 'original') return projects;
+
+    return [...projects].sort((a, b) => {
+      let aVal, bVal;
+
+      if (sortConfig.key === 'client') {
+        aVal = (a.client || '').toLowerCase();
+        bVal = (b.client || '').toLowerCase();
+      } else if (sortConfig.key === 'title') {
+        aVal = (a.title || '').toLowerCase();
+        bVal = (b.title || '').toLowerCase();
+      } else if (sortConfig.key === 'start_date') {
+        aVal = a.start_date || '0000-00-00';
+        bVal = b.start_date || '0000-00-00';
+      } else if (sortConfig.key === 'end_date') {
+        aVal = a.end_date || '9999-99-99'; // Ongoing projects at top for desc, bottom for asc
+        bVal = b.end_date || '9999-99-99';
+      }
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [projects, sortConfig]);
 
   useEffect(() => {
     let isActive = true;
@@ -66,6 +93,14 @@ export default function ProjectsEditor({ staffId }) {
 
   function updateField(key, field, value) {
     setProjects((prev) => prev.map((p) => (p.key === key ? { ...p, [field]: value } : p)));
+  }
+
+  function handleSort(key) {
+    setSortConfig((prev) => {
+      const isNew = prev.key !== key;
+      const nextDir = isNew ? (key.includes('date') ? 'desc' : 'asc') : (prev.direction === 'asc' ? 'desc' : 'asc');
+      return { key, direction: nextDir };
+    });
   }
 
   async function saveProjects(nextProjects) {
@@ -140,13 +175,50 @@ export default function ProjectsEditor({ staffId }) {
           {errors.load}
         </p>
       )}
+      
+      {projects.length > 1 && (
+        <div className="flex items-center gap-2 mb-6 px-1 flex-wrap">
+          <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] mr-2">Sort by</span>
+          <SortButton
+            active={sortConfig.key === 'original'}
+            icon={<History size={14} />}
+            label="Original"
+            onClick={() => handleSort('original')}
+          />
+          <SortButton
+            active={sortConfig.key === 'client'}
+            direction={sortConfig.key === 'client' ? sortConfig.direction : null}
+            label="Client"
+            onClick={() => handleSort('client')}
+          />
+          <SortButton
+            active={sortConfig.key === 'title'}
+            direction={sortConfig.key === 'title' ? sortConfig.direction : null}
+            label="Project"
+            onClick={() => handleSort('title')}
+          />
+          <SortButton
+            active={sortConfig.key === 'start_date'}
+            direction={sortConfig.key === 'start_date' ? sortConfig.direction : null}
+            label="Start Date"
+            onClick={() => handleSort('start_date')}
+          />
+          <SortButton
+            active={sortConfig.key === 'end_date'}
+            direction={sortConfig.key === 'end_date' ? sortConfig.direction : null}
+            label="End Date"
+            onClick={() => handleSort('end_date')}
+          />
+        </div>
+      )}
+
       {projects.length === 0 && !adding && (
         <p className="text-sm text-[var(--text-muted)] py-4">
           No projects yet. Add your first one below.
         </p>
       )}
 
-      {projects.map((project) => {
+      {sortedProjects.map((project) => {
         const isOpen = expandedKey === project.key;
         const isSaving = savingKey === project.key;
         const isSaved = savedKey === project.key;
@@ -361,6 +433,29 @@ function ProjectField({ label, hint, children }) {
 }
 
 const inputCls = 'input-field';
+
+function SortButton({ active, label, onClick, direction, icon }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all border ${
+        active
+          ? 'bg-[var(--accent-main)] text-[var(--accent-text)] border-[var(--accent-main)]'
+          : 'bg-transparent text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text-muted)]'
+      }`}
+    >
+      {icon}
+      {label}
+      {direction && (
+        <ArrowUpDown
+          size={12}
+          className={`transition-transform ${direction === 'desc' ? 'rotate-180' : ''}`}
+        />
+      )}
+    </button>
+  );
+}
 
 function normalizeProjectKeyPart(value) {
   return String(value || '')
