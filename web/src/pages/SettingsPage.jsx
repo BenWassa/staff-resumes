@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, CheckCircle, FolderOpen } from 'lucide-react';
 import { apiFetch } from '../utils/apiFetch';
+import { selectFolder } from '../utils/selectFolder';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -11,8 +12,6 @@ export default function SettingsPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
-  const canPickFolder =
-    typeof window !== 'undefined' && typeof window.electronAPI?.selectFolder === 'function';
 
   useEffect(() => {
     apiFetch('/api/config/paths')
@@ -27,11 +26,7 @@ export default function SettingsPage() {
   async function handleSaveConfig() {
     const trimmed = pursuitsRootInput.trim();
     if (!trimmed) {
-      setError(
-        canPickFolder
-          ? 'Use Browse to select your Pursuits - Documents folder.'
-          : 'Enter the full Projects folder path.',
-      );
+      setError('Use Browse to select your Pursuits - Documents folder.');
       return;
     }
 
@@ -64,13 +59,13 @@ export default function SettingsPage() {
 
   async function handleBrowse() {
     try {
-      const picked = await window.electronAPI.selectFolder();
+      const picked = await selectFolder();
       if (!picked) return;
       setPursuitsRootInput(picked);
       setError(null);
       setSuccess(null);
     } catch {
-      setError('Could not open folder picker. Enter the path manually.');
+      setError('Could not open folder picker. Try again or enter the path manually.');
     }
   }
 
@@ -90,112 +85,111 @@ export default function SettingsPage() {
         <div className="w-24"></div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-6 py-8">
-        <div className="panel-surface">
-          <div className="p-6">
-            <div className="mb-8">
-              <h1 className="mb-2 text-2xl font-semibold text-[var(--text-primary)]">Configuration</h1>
-              <p className="text-sm text-[var(--text-muted)]">
-                Manage your Pursuits folder and other local settings.
-              </p>
-            </div>
+      <div className="mx-auto max-w-4xl px-6 py-12">
+        <div className="section-intro mb-10">
+          <h1 className="section-title text-3xl">Configuration</h1>
+          <p className="section-description text-base">
+            Manage your Pursuits folder and other local settings.
+          </p>
+        </div>
 
-            {configStatus && (
-              <div className="mb-8 border-b border-[var(--border-color)] pb-8">
-                <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+        <div className="grid gap-10">
+          {configStatus && (
+            <div className="panel-surface overflow-hidden">
+              <div className="panel-header">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                   Current Configuration
                 </h2>
-                <div className="rounded-lg bg-[var(--bg-secondary)] p-4">
-                  <div className="mb-2 flex items-start justify-between">
+              </div>
+              <div className="p-8">
+                <div className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] p-5">
+                  <div className="flex items-start justify-between gap-6">
                     <div>
-                      <h3 className="font-medium text-[var(--text-primary)]">Projects Folder</h3>
-                      <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">Projects Folder</h3>
+                      <p className="mt-2 font-mono text-sm text-[var(--text-main)] break-all">
                         {configStatus.pursuits_root || '(Not configured)'}
                       </p>
                     </div>
-                    <div>
+                    <div className="shrink-0">
                       {configStatus.pursuits_root_exists ? (
-                        <div className="flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                        <div className="flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-xs font-bold text-green-700">
                           <CheckCircle size={14} />
-                          Configured
+                          CONNECTED
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-700">
+                        <div className="flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-1.5 text-xs font-bold text-red-700">
                           <AlertCircle size={14} />
-                          Not Found
+                          DISCONNECTED
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            <div>
-              <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+          <div className="panel-surface overflow-hidden">
+            <div className="panel-header">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                 Update Projects Folder
               </h2>
+            </div>
 
-              <div className="mb-3 flex items-center gap-2">
+            <div className="p-8">
+              <div className="mb-4 flex items-center gap-3">
                 <input
                   type="text"
                   value={pursuitsRootInput}
-                  onChange={canPickFolder ? undefined : (e) => setPursuitsRootInput(e.target.value)}
-                  placeholder={
-                    canPickFolder
-                      ? 'Use Browse to select your Pursuits - Documents folder'
-                      : 'C:\\Company\\Projects'
-                  }
+                  onChange={(e) => setPursuitsRootInput(e.target.value)}
+                  placeholder="Use Browse to select your Pursuits - Documents folder"
                   spellCheck={false}
                   autoComplete="off"
                   disabled={loading}
-                  readOnly={canPickFolder}
-                  className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-blue-500 disabled:opacity-70"
+                  className="input-field"
                 />
-                {canPickFolder && (
-                  <button
-                    type="button"
-                    onClick={handleBrowse}
-                    disabled={loading}
-                    className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-main)] disabled:opacity-70"
-                  >
-                    <FolderOpen size={16} />
-                    Browse
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleBrowse}
+                  disabled={loading}
+                  className="button-secondary whitespace-nowrap"
+                >
+                  <FolderOpen size={16} />
+                  Browse
+                </button>
               </div>
 
-              <p className="mb-6 break-all text-xs text-[var(--text-muted)]">
+              <p className="mb-8 break-all text-xs text-[var(--text-muted)]">
                 Find and select the folder named{' '}
-                <code className="rounded bg-[var(--bg-secondary)] px-1">Pursuits - Documents</code>{' '}
+                <code className="rounded bg-[var(--bg-hover)] px-1 font-semibold text-[var(--text-main)]">Pursuits - Documents</code>{' '}
                 (for example{' '}
-                <code className="rounded bg-[var(--bg-secondary)] px-1">
+                <code className="rounded bg-[var(--bg-hover)] px-1">
                   C:\Users\ben.haddon\OneDrive - Blackline Consulting\Pursuits - Documents
                 </code>
                 ).
               </p>
 
               {error && (
-                <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
-                  <AlertCircle size={18} className="mt-0.5 flex-shrink-0 text-red-600" />
-                  <p className="text-sm text-red-700">{error}</p>
+                <div className="mb-6 flex items-start gap-3 rounded-lg border border-[var(--border-danger-subtle)] bg-[var(--bg-danger-subtle)] p-4">
+                  <AlertCircle size={18} className="mt-0.5 flex-shrink-0 text-[var(--text-danger)]" />
+                  <p className="text-sm font-medium text-[var(--text-danger)]">{error}</p>
                 </div>
               )}
 
               {success && (
                 <div className="mb-6 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
                   <CheckCircle size={18} className="mt-0.5 flex-shrink-0 text-green-600" />
-                  <p className="text-sm text-green-700">{success}</p>
+                  <p className="text-sm font-medium text-green-700">{success}</p>
                 </div>
               )}
 
-              <div className="flex justify-end">
+              <div className="flex justify-end pt-2">
                 <button
                   onClick={handleSaveConfig}
                   disabled={loading}
-                  className="rounded bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                  className="button-primary min-w-[140px]"
                 >
-                  {loading ? 'Saving...' : 'Save'}
+                  {loading ? 'Saving...' : 'Update Settings'}
                 </button>
               </div>
             </div>

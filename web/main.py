@@ -389,6 +389,32 @@ def api_set_config_paths(body: ConfigPathsUpdate):
     return {"ok": True, **get_config_status()}
 
 
+@app.post("/api/system/select-folder")
+def api_select_folder():
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail="Folder picker is unavailable on this machine."
+        ) from exc
+
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        picked = filedialog.askdirectory(
+            title="Select Pursuits - Documents Folder", mustexist=True
+        )
+        root.destroy()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail="Could not open folder picker."
+        ) from exc
+
+    return {"path": picked or None}
+
+
 @app.get("/api/health")
 def api_health():
     return get_config_status()
