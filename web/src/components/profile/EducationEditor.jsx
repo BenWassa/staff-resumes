@@ -91,20 +91,20 @@ export default function EducationEditor({ staffId }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
+    <div className="space-y-6">
+      <div className="space-y-4">
         {entries.map((entry) => (
           <div
             key={entry._id}
-            className="border border-[var(--border)] rounded-[var(--radius-lg)] bg-[var(--bg-card)] p-4"
+            className="panel-surface bg-[var(--bg-card)] p-6"
           >
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-6">
               <EduField label="Degree / Cert">
                 <input
                   type="text"
                   value={entry.degree_cert}
                   onChange={(e) => updateEntry(entry._id, 'degree_cert', e.target.value)}
-                  className={inputCls}
+                  className="input-field"
                   placeholder="B.Eng."
                 />
               </EduField>
@@ -113,7 +113,7 @@ export default function EducationEditor({ staffId }) {
                   type="text"
                   value={entry.degree_area}
                   onChange={(e) => updateEntry(entry._id, 'degree_area', e.target.value)}
-                  className={inputCls}
+                  className="input-field"
                   placeholder="Civil Engineering"
                 />
               </EduField>
@@ -122,7 +122,7 @@ export default function EducationEditor({ staffId }) {
                   type="text"
                   value={entry.location}
                   onChange={(e) => updateEntry(entry._id, 'location', e.target.value)}
-                  className={inputCls}
+                  className="input-field"
                   placeholder="University of Calgary"
                 />
               </EduField>
@@ -131,42 +131,53 @@ export default function EducationEditor({ staffId }) {
         ))}
 
         {entries.length === 0 && (
-          <p className="text-sm text-[var(--text-muted)] py-2">No education entries yet.</p>
+          <div className="rounded-xl border border-dashed border-[var(--border-main)] bg-[var(--bg-hover)] p-8 text-center">
+            <p className="text-sm font-medium text-[var(--text-muted)]">No education entries yet.</p>
+          </div>
         )}
       </div>
 
       {entries.length > 1 && (
-        <div>
-          <p className="text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider font-medium">
+        <div className="rounded-xl border border-[var(--border-main)] bg-white p-6">
+          <p className="eyebrow-label mb-4">
             Drag to reorder
           </p>
           <SortableList items={sortableItems} onReorder={handleReorder} onRemove={handleRemove} />
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={addEntry}
-        className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors py-1"
-      >
-        <Plus size={15} /> Add education entry
-      </button>
+      <div className="flex items-center justify-between gap-4 pt-6 border-t border-[var(--border-main)] mt-8">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={addEntry}
+            className="button-secondary"
+          >
+            <Plus size={16} /> Add Entry
+          </button>
+          
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saveState === 'saving'}
+            className="button-primary min-w-[140px]"
+          >
+            {saveState === 'saving' ? 'Saving...' : 'Save Education'}
+          </button>
+        </div>
 
-      <div className="flex items-center gap-3 pt-2">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saveState === 'saving'}
-          className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-[var(--radius)] transition-opacity"
-        >
-          {saveState === 'saving' ? 'Saving...' : 'Save education'}
-        </button>
-        {saveState === 'saved' && (
-          <span className="flex items-center gap-1.5 text-sm text-green-500">
-            <CheckCircle2 size={15} /> Saved
-          </span>
-        )}
-        {saveState === 'error' && <span className="text-sm text-red-400">{errorMsg}</span>}
+        <div>
+          {saveState === 'saved' && (
+            <span className="flex items-center gap-2 text-sm font-semibold text-green-600">
+              <CheckCircle2 size={16} /> Update Successful
+            </span>
+          )}
+          {saveState === 'error' && (
+            <span className="text-sm font-medium text-[var(--accent-main)]">
+              {errorMsg}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -174,8 +185,8 @@ export default function EducationEditor({ staffId }) {
 
 function EduField({ label, children }) {
   return (
-    <div className="space-y-1">
-      <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
+    <div className="space-y-1.5">
+      <label className="eyebrow-label">
         {label}
       </label>
       {children}
@@ -183,8 +194,7 @@ function EduField({ label, children }) {
   );
 }
 
-const inputCls =
-  'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-[var(--radius)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--blc-red)] transition-colors';
+const inputCls = 'input-field';
 
 function makeId(index) {
   return `${crypto.randomUUID()}_${index}`;

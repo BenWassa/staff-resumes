@@ -221,30 +221,30 @@ export default function ProjectsEditor({ staffId }) {
 
                 {errMsg && <p className="text-xs text-red-400">{errMsg}</p>}
 
-                <div className="flex items-center gap-3 pt-1">
+                <div className="flex items-center gap-3 pt-3 mt-4 border-t border-[var(--border-main)]">
                   <button
                     type="button"
                     onClick={() => saveProject(project)}
                     disabled={isSaving}
-                    className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-4 py-1.5 rounded-[var(--radius)] transition-opacity"
+                    className="button-primary min-w-[100px]"
                   >
-                    {isSaving ? 'Saving...' : 'Save project'}
+                    {isSaving ? 'Saving...' : 'Save'}
                   </button>
 
                   {isSaved && (
-                    <span className="flex items-center gap-1.5 text-sm text-green-500">
-                      <CheckCircle2 size={14} /> Saved
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-green-600">
+                      <CheckCircle2 size={16} /> Saved
                     </span>
                   )}
 
                   <div className="ml-auto">
                     {isDeletePending ? (
-                      <span className="flex items-center gap-2 text-sm">
-                        <span className="text-[var(--text-muted)]">Delete this project?</span>
+                      <span className="flex items-center gap-3 text-sm">
+                        <span className="text-[var(--text-muted)] font-medium">Delete project?</span>
                         <button
                           type="button"
                           onClick={() => confirmDelete(project.key)}
-                          className="text-red-400 hover:text-red-300 font-medium"
+                          className="text-[var(--accent-main)] hover:underline font-bold"
                         >
                           Confirm
                         </button>
@@ -260,7 +260,7 @@ export default function ProjectsEditor({ staffId }) {
                       <button
                         type="button"
                         onClick={() => setDeletingKey(project.key)}
-                        className="text-xs text-[var(--text-muted)] hover:text-red-400 transition-colors"
+                        className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--accent-main)] transition-colors"
                       >
                         Delete
                       </button>
@@ -274,68 +274,74 @@ export default function ProjectsEditor({ staffId }) {
       })}
 
       {adding ? (
-        <div className="border border-[var(--border)] rounded-[var(--radius-lg)] bg-[var(--bg-card)] p-4 space-y-3">
-          <p className="text-sm font-medium text-[var(--text-primary)]">New project</p>
-          <div className="grid grid-cols-2 gap-3">
-            <ProjectField label="Project Key *" hint="Unique identifier, e.g. ANAHEIM-2024">
-              <input
-                type="text"
-                value={newProject.key}
-                onChange={(e) => setNewProject((p) => ({ ...p, key: e.target.value }))}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
-                className={inputCls}
-                placeholder="CLIENT-YEAR"
-                autoFocus
-              />
-            </ProjectField>
-            <ProjectField label="Client">
-              <input
-                type="text"
-                value={newProject.client}
-                onChange={(e) => setNewProject((p) => ({ ...p, client: e.target.value }))}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
-                className={inputCls}
-              />
-            </ProjectField>
+        <div className="panel-surface overflow-hidden bg-[var(--bg-card)] mt-8">
+          <div className="panel-header py-4 bg-white/50">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--accent-main)]">New project</h3>
           </div>
-          <ProjectField label="Project Title">
-            <input
-              type="text"
-              value={newProject.title}
-              onChange={(e) => setNewProject((p) => ({ ...p, title: e.target.value }))}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
-              className={inputCls}
-            />
-          </ProjectField>
-          <div className="flex items-center gap-3 pt-1">
-            <button
-              type="button"
-              onClick={handleAddProject}
-              disabled={!newProject.key.trim() || addSaving}
-              className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-4 py-1.5 rounded-[var(--radius)] transition-opacity"
-            >
-              {addSaving ? 'Adding...' : 'Add project'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAdding(false);
-                setNewProject(BLANK_PROJECT);
-              }}
-              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            >
-              Cancel
-            </button>
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <ProjectField label="Project Key *" hint="Unique identifier, e.g. ANAHEIM-2024">
+                <input
+                  type="text"
+                  value={newProject.key}
+                  onChange={(e) => setNewProject((p) => ({ ...p, key: e.target.value }))}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
+                  className={inputCls}
+                  placeholder="CLIENT-YEAR"
+                  autoFocus
+                />
+              </ProjectField>
+              <ProjectField label="Client">
+                <input
+                  type="text"
+                  value={newProject.client}
+                  onChange={(e) => setNewProject((p) => ({ ...p, client: e.target.value }))}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
+                  className={inputCls}
+                />
+              </ProjectField>
+            </div>
+            <ProjectField label="Project Title">
+              <input
+                type="text"
+                value={newProject.title}
+                onChange={(e) => setNewProject((p) => ({ ...p, title: e.target.value }))}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
+                className={inputCls}
+              />
+            </ProjectField>
+            <div className="flex items-center gap-4 pt-4 border-t border-[var(--border-main)]">
+              <button
+                type="button"
+                onClick={handleAddProject}
+                disabled={!newProject.key.trim() || addSaving}
+                className="button-primary min-w-[120px]"
+              >
+                {addSaving ? 'Adding...' : 'Create Project'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAdding(false);
+                  setNewProject(BLANK_PROJECT);
+                }}
+                className="button-secondary"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors py-1"
-        >
-          <Plus size={15} /> Add project
-        </button>
+        <div className="flex justify-end pt-8 mt-8 border-t border-[var(--border-main)]">
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="button-primary min-w-[200px]"
+          >
+            <Plus size={18} /> Add New Project
+          </button>
+        </div>
       )}
     </div>
   );
@@ -343,15 +349,12 @@ export default function ProjectsEditor({ staffId }) {
 
 function ProjectField({ label, hint, children }) {
   return (
-    <div className="space-y-1">
-      <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-        {label}
-      </label>
-      {hint && <p className="text-xs text-[var(--text-muted)] mb-1">{hint}</p>}
+    <div className="space-y-1.5">
+      <label className="eyebrow-label">{label}</label>
+      {hint && <p className="mb-1 text-[11px] leading-tight text-[var(--text-muted)] italic">{hint}</p>}
       {children}
     </div>
   );
 }
 
-const inputCls =
-  'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-[var(--radius)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--blc-red)] transition-colors';
+const inputCls = 'input-field';

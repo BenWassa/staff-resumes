@@ -100,15 +100,15 @@ export default function BioEditor({ staffId }) {
   const isCustomTitle = fields.title && !TITLE_OPTIONS.includes(fields.title);
 
   return (
-    <form onSubmit={handleSave} className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSave} className="space-y-6">
+      <div className="grid grid-cols-2 gap-6">
         <Field label="First name">
           <input
             type="text"
             required
             value={fields.first_name}
             onChange={(e) => set('first_name', e.target.value)}
-            className={inputCls}
+            className="input-field"
           />
         </Field>
         <Field label="Last name">
@@ -117,33 +117,40 @@ export default function BioEditor({ staffId }) {
             required
             value={fields.last_name}
             onChange={(e) => set('last_name', e.target.value)}
-            className={inputCls}
+            className="input-field"
           />
         </Field>
       </div>
 
       <Field label="Title">
-        <select
-          value={TITLE_OPTIONS.includes(fields.title) ? fields.title : '__custom__'}
-          onChange={(e) => {
-            if (e.target.value !== '__custom__') set('title', e.target.value);
-          }}
-          className={inputCls}
-        >
-          {TITLE_OPTIONS.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-          <option value="__custom__">Other...</option>
-        </select>
+        <div className="relative">
+          <select
+            value={TITLE_OPTIONS.includes(fields.title) ? fields.title : '__custom__'}
+            onChange={(e) => {
+              if (e.target.value !== '__custom__') set('title', e.target.value);
+            }}
+            className="input-field appearance-none"
+          >
+            {TITLE_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+            <option value="__custom__">Other...</option>
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[var(--text-muted)]">
+            <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+            </svg>
+          </div>
+        </div>
         {(isCustomTitle || fields.title === '') && (
           <input
             type="text"
             placeholder="Enter custom title"
             value={fields.title}
             onChange={(e) => set('title', e.target.value)}
-            className={`${inputCls} mt-2`}
+            className="input-field mt-3"
           />
         )}
       </Field>
@@ -154,26 +161,30 @@ export default function BioEditor({ staffId }) {
           value={fields.summary}
           onChange={(e) => set('summary', e.target.value)}
           rows={4}
-          className={`${inputCls} resize-none overflow-hidden`}
+          className="input-field resize-none overflow-hidden leading-relaxed"
           placeholder="Write a 2-3 sentence professional summary..."
         />
       </Field>
 
-      <div className="flex items-center gap-3 pt-1">
+      <div className="flex items-center gap-4 pt-2 border-t border-[var(--border-main)] mt-8">
         <button
           type="submit"
           disabled={saveState === 'saving'}
-          className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-[var(--radius)] transition-opacity"
+          className="button-primary min-w-[140px]"
         >
-          {saveState === 'saving' ? 'Saving...' : 'Save bio'}
+          {saveState === 'saving' ? 'Saving...' : 'Save Changes'}
         </button>
 
         {saveState === 'saved' && (
-          <span className="flex items-center gap-1.5 text-sm text-green-500">
-            <CheckCircle2 size={15} /> Saved
+          <span className="flex items-center gap-2 text-sm font-semibold text-green-600">
+            <CheckCircle2 size={16} /> Update Successful
           </span>
         )}
-        {saveState === 'error' && <span className="text-sm text-red-400">{errorMsg}</span>}
+        {saveState === 'error' && (
+          <span className="text-sm font-medium text-[var(--accent-main)]">
+            {errorMsg}
+          </span>
+        )}
       </div>
     </form>
   );
@@ -181,15 +192,12 @@ export default function BioEditor({ staffId }) {
 
 function Field({ label, hint, children }) {
   return (
-    <div className="space-y-1">
-      <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
+    <div className="space-y-2">
+      <label className="eyebrow-label">
         {label}
       </label>
-      {hint && <p className="text-xs text-[var(--text-muted)] mb-1">{hint}</p>}
+      {hint && <p className="text-xs text-[var(--text-muted)] italic">{hint}</p>}
       {children}
     </div>
   );
 }
-
-const inputCls =
-  'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-[var(--radius)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--blc-red)] transition-colors';

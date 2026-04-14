@@ -43,17 +43,21 @@ export default function AdminPage() {
   return (
     <div className="app-shell">
       <div className="app-shell-header flex items-center justify-between gap-4">
-        <span className="app-shell-brand font-sans text-lg">
+        <span className="app-shell-brand font-sans text-xl">
           Blackline <span className="text-[var(--text-muted)] font-normal">Staff Resumes</span>
         </span>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-[var(--text-muted)]">Local session</span>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></div>
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">Local session</span>
+          </div>
           <button
             onClick={() => navigate('/settings')}
-            className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-2 rounded-full border border-[var(--border-main)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-all hover:border-[var(--accent-main)] hover:text-[var(--accent-main)] hover:shadow-sm"
             title="Settings"
           >
             <Settings size={14} />
+            <span>Settings</span>
           </button>
         </div>
       </div>
