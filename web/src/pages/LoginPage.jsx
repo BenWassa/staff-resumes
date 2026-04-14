@@ -101,138 +101,132 @@ export default function LoginPage() {
   const busy = loading || googleLoading;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col items-center justify-center px-4">
-      {/* Card */}
-      <div className="w-full max-w-[360px]">
-        {/* Header strip */}
-        <div className="bg-[var(--bg-header)] px-8 py-6 flex flex-col items-center gap-1">
-          <span
-            className="font-bold tracking-tight text-white"
-            style={{ fontFamily: 'var(--font-sans)', fontSize: '1.25rem', letterSpacing: '0.05em' }}
-          >
-            BLACKLINE
-          </span>
-          <span
-            style={{
-              color: 'rgba(255,255,255,0.5)',
-              fontSize: '0.7rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Staff Resumes
-          </span>
-        </div>
-
-        {/* Red accent bar */}
-        <div style={{ height: 3, background: 'var(--accent-main)' }} />
-
-        {/* Body */}
-        <div className="bg-[var(--bg-panel)] border-x border-b border-[var(--border-main)] px-8 py-7 space-y-5">
-          {/* Mode tabs */}
-          <div className="flex text-xs font-semibold tracking-wider uppercase border border-[var(--border-main)]">
-            {['signin', 'create'].map((m, i) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => switchMode(m)}
-                className={`flex-1 py-2.5 transition-colors ${
-                  i > 0 ? 'border-l border-[var(--border-main)]' : ''
-                } ${
-                  mode === m
-                    ? 'bg-[var(--accent-main)] text-white'
-                    : 'bg-white text-[var(--text-muted)] hover:bg-[var(--bg-main)]'
-                }`}
-              >
-                {m === 'signin' ? 'Sign in' : 'Create account'}
-              </button>
-            ))}
-          </div>
-
-          {/* Google */}
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={busy}
-            className="w-full flex items-center justify-center gap-3 border border-[var(--border-main)] bg-white hover:bg-[var(--bg-main)] disabled:opacity-50 text-[var(--text-muted)] text-sm font-medium py-2.5 transition-colors"
-          >
-            {googleLoading ? (
-              <span>Connecting…</span>
-            ) : (
-              <>
-                <GoogleIcon />
-                Continue with Google
-              </>
-            )}
-          </button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-[var(--border-main)]" />
+    <div className="app-shell flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-[380px]">
+        <div className="panel-surface overflow-hidden">
+          <div className="modal-header-bg px-8 py-7 flex flex-col items-center gap-2">
+            <span
+              className="font-bold tracking-tight text-white"
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '1.25rem',
+                letterSpacing: '0.05em',
+              }}
+            >
+              BLACKLINE
+            </span>
             <span
               style={{
+                color: 'rgba(255,255,255,0.58)',
                 fontSize: '0.7rem',
-                color: 'var(--text-muted)',
-                letterSpacing: '0.08em',
+                letterSpacing: '0.12em',
                 textTransform: 'uppercase',
               }}
             >
-              or
+              Staff Resumes
             </span>
-            <div className="flex-1 h-px bg-[var(--border-main)]" />
           </div>
 
-          {/* Email / password form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <EmailField
-              email={email}
-              onEmailChange={setEmail}
-              isAllowed={isEmailAllowed}
-              hasInput={emailTrimmed.length > 0}
-            />
+          <div style={{ height: 4, background: 'var(--accent-main)' }} />
 
-            <Field label="Password">
-              <input
-                type="password"
-                autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="input-field"
-              />
-            </Field>
-
-            {mode === 'create' && (
-              <PasswordField
-                label="Confirm password"
-                value={confirmPassword}
-                onChange={setConfirmPassword}
-                matches={isPasswordConfirmed}
-                hasInput={confirmPassword.length > 0}
-              />
-            )}
-
-            {error && (
-              <p className="text-sm" style={{ color: 'var(--accent-main)' }}>
-                {error}
-              </p>
-            )}
+          <div className="bg-[var(--bg-panel)] px-8 py-7 space-y-5">
+            <div className="flex overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-main)] text-xs font-semibold uppercase tracking-wider">
+              {['signin', 'create'].map((m, i) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => switchMode(m)}
+                  className={`flex-1 py-2.5 transition-colors ${
+                    i > 0 ? 'border-l border-[var(--border-main)]' : ''
+                  } ${
+                    mode === m
+                      ? 'bg-[var(--accent-main)] text-white'
+                      : 'bg-white text-[var(--text-muted)] hover:bg-[var(--bg-hover)]'
+                  }`}
+                >
+                  {m === 'signin' ? 'Sign in' : 'Create account'}
+                </button>
+              ))}
+            </div>
 
             <button
-              type="submit"
-              disabled={!canSubmit || busy}
-              className="w-full bg-[var(--accent-main)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white font-semibold text-sm py-2.5 transition-colors tracking-wide"
+              type="button"
+              onClick={handleGoogle}
+              disabled={busy}
+              className="button-secondary w-full"
             >
-              {loading
-                ? mode === 'create'
-                  ? 'Creating account…'
-                  : 'Signing in…'
-                : mode === 'create'
-                  ? 'Create account'
-                  : 'Sign in'}
+              {googleLoading ? (
+                <span>Connecting...</span>
+              ) : (
+                <>
+                  <GoogleIcon />
+                  Continue with Google
+                </>
+              )}
             </button>
-          </form>
+
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-[var(--border-main)]" />
+              <span
+                style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--text-muted)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                or
+              </span>
+              <div className="h-px flex-1 bg-[var(--border-main)]" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <EmailField
+                email={email}
+                onEmailChange={setEmail}
+                isAllowed={isEmailAllowed}
+                hasInput={emailTrimmed.length > 0}
+              />
+
+              <Field label="Password">
+                <input
+                  type="password"
+                  autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="input-field"
+                />
+              </Field>
+
+              {mode === 'create' && (
+                <PasswordField
+                  label="Confirm password"
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  matches={isPasswordConfirmed}
+                  hasInput={confirmPassword.length > 0}
+                />
+              )}
+
+              {error && (
+                <p className="text-sm" style={{ color: 'var(--accent-main)' }}>
+                  {error}
+                </p>
+              )}
+
+              <button type="submit" disabled={!canSubmit || busy} className="button-primary w-full">
+                {loading
+                  ? mode === 'create'
+                    ? 'Creating account...'
+                    : 'Signing in...'
+                  : mode === 'create'
+                    ? 'Create account'
+                    : 'Sign in'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -240,7 +234,6 @@ export default function LoginPage() {
 }
 
 function EmailField({ email, onEmailChange, isAllowed, hasInput }) {
-  const trimmed = email.trim().toLowerCase();
   const showStatus = hasInput;
   const isValid = isAllowed && hasInput;
 
@@ -282,7 +275,7 @@ function EmailField({ email, onEmailChange, isAllowed, hasInput }) {
             marginTop: '0.5rem',
           }}
         >
-          {isValid ? '✓ Authorised email' : '⚠ Not on whitelist. Contact your admin.'}
+          {isValid ? '✓ Authorised email' : 'Warning: not on whitelist. Contact your admin.'}
         </p>
       )}
     </div>
@@ -322,7 +315,7 @@ function PasswordField({ label, value, onChange, matches, hasInput }) {
       />
       {hasInput && !matches && (
         <p style={{ fontSize: '0.75rem', color: 'var(--accent-main)', marginTop: '0.5rem' }}>
-          ⚠ Passwords don't match
+          Passwords do not match
         </p>
       )}
     </div>

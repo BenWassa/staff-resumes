@@ -33,7 +33,6 @@ export default function OnboardingScreen({ onComplete }) {
       const res = await fetch('/api/onboarding/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // dry-run: just ask the backend to resolve, don't commit yet
         body: JSON.stringify({ picked_path: path, dry_run: true }),
       });
       const data = await res.json();
@@ -77,90 +76,82 @@ export default function OnboardingScreen({ onComplete }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]">
-      <div
-        className="bg-[var(--bg-panel)] w-full max-w-lg"
-        style={{ borderTop: 'var(--card-border-top)', boxShadow: 'var(--shadow-panel)' }}
-      >
-        {/* Header */}
-        <div className="modal-header-bg px-8 py-6">
-          <h1 className="text-xl font-semibold text-[var(--text-header)] tracking-wide uppercase">
-            Staff Resumes
+    <div className="app-shell flex items-center justify-center px-4">
+      <div className="panel-surface w-full max-w-2xl overflow-hidden">
+        <div className="modal-header-bg px-8 py-7">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--border-header-badge)] bg-[var(--bg-header-badge)] px-3 py-1 text-sm font-mono uppercase tracking-[0.18em] text-[var(--text-header-muted)]">
+            <FolderOpen size={14} />
+            Setup
+          </div>
+          <h1 className="text-2xl font-medium tracking-tight text-[var(--text-header)]">
+            Configure Staff Resumes
           </h1>
-          <p className="text-sm text-[var(--text-header-muted)] mt-1 opacity-70">
-            First-time setup
+          <p className="mt-2 text-sm text-[var(--text-header-muted)]">
+            Point the app at your main Pursuits folder and we&apos;ll take care of the rest.
           </p>
         </div>
 
-        {/* Body */}
         <div className="px-8 py-7 space-y-6">
           <div>
-            <p className="text-sm text-[var(--text-main)] leading-relaxed">
-              To get started, select your <span className="font-semibold">Pursuits folder</span> —
-              the folder that contains all your proposal project subfolders. Outputs will be saved
-              inside each project automatically.
+            <p className="text-sm leading-relaxed text-[var(--text-main)]">
+              Select your <span className="font-semibold">Pursuits folder</span>, the location that
+              contains all proposal project subfolders. Outputs will be saved inside each project
+              automatically.
             </p>
-            <p className="text-xs text-[var(--text-muted)] mt-2">
-              If you accidentally select a project subfolder, the app will find the right location
-              for you.
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              If you accidentally choose a project subfolder, the app will resolve the correct root
+              folder for you.
             </p>
           </div>
 
-          {/* Folder picker */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex gap-2">
               <input
                 type="text"
-                className="flex-1 px-3 py-2 text-sm border border-[var(--border-main)] bg-[var(--bg-input)] text-[var(--text-main)] focus:outline-none focus:border-[var(--border-accent)]"
-                placeholder="e.g. C:\Users\you\OneDrive - Company\Pursuits - Documents"
+                className="input-field flex-1"
+                placeholder="e.g. C:\\Users\\you\\OneDrive - Company\\Pursuits - Documents"
                 value={pickedPath}
                 onChange={handleManualInput}
                 onKeyDown={(e) => e.key === 'Enter' && handlePreviewManual()}
               />
-              {canPickFolder && (
-                <button
-                  onClick={handleBrowse}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm border border-[var(--border-main)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-main)] transition-colors"
-                  title="Browse for folder"
-                >
+              {canPickFolder ? (
+                <button onClick={handleBrowse} className="button-secondary" title="Browse for folder">
                   <FolderOpen size={15} />
                   Browse
                 </button>
-              )}
-              {!canPickFolder && (
+              ) : (
                 <button
                   onClick={handlePreviewManual}
                   disabled={isPreviewing || !pickedPath.trim()}
-                  className="px-3 py-2 text-sm border border-[var(--border-main)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-main)] transition-colors disabled:opacity-40"
+                  className="button-secondary"
                 >
                   Check
                 </button>
               )}
             </div>
 
-            {/* Preview feedback */}
             {isPreviewing && (
               <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                 <Loader2 size={13} className="animate-spin" />
-                Checking path…
+                Checking path...
               </div>
             )}
 
             {resolvedPath && !isPreviewing && (
-              <div className="flex items-start gap-2 text-xs text-[var(--text-muted)] bg-[var(--bg-accent-subtle)] border border-[var(--border-accent-subtle)] px-3 py-2">
-                <CheckCircle2 size={13} className="mt-0.5 text-[var(--accent-main)] shrink-0" />
-                <span>
-                  <span className="font-medium text-[var(--text-main)]">
-                    Pursuits folder found:
+              <div className="rounded-[var(--radius-sm)] border border-[var(--border-accent-subtle)] bg-[var(--bg-accent-subtle)] px-3 py-2.5 text-xs text-[var(--text-muted)]">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-[var(--accent-main)]" />
+                  <span>
+                    <span className="font-medium text-[var(--text-main)]">Pursuits folder found:</span>
+                    <br />
+                    <span className="font-mono break-all">{resolvedPath}</span>
                   </span>
-                  <br />
-                  <span className="font-mono break-all">{resolvedPath}</span>
-                </span>
+                </div>
               </div>
             )}
 
             {previewError && !isPreviewing && (
-              <div className="flex items-start gap-2 text-xs text-[var(--text-danger)] bg-[var(--bg-danger-subtle)] border border-[var(--border-danger-subtle)] px-3 py-2">
+              <div className="flex items-start gap-2 rounded-[var(--radius-sm)] border border-[var(--border-danger-subtle)] bg-[var(--bg-danger-subtle)] px-3 py-2.5 text-xs text-[var(--text-danger)]">
                 <AlertTriangle size={13} className="mt-0.5 shrink-0" />
                 {previewError}
               </div>
@@ -168,18 +159,17 @@ export default function OnboardingScreen({ onComplete }) {
           </div>
 
           {saveError && (
-            <div className="flex items-start gap-2 text-xs text-[var(--text-danger)] bg-[var(--bg-danger-subtle)] border border-[var(--border-danger-subtle)] px-3 py-2">
+            <div className="flex items-start gap-2 rounded-[var(--radius-sm)] border border-[var(--border-danger-subtle)] bg-[var(--bg-danger-subtle)] px-3 py-2.5 text-xs text-[var(--text-danger)]">
               <AlertTriangle size={13} className="mt-0.5 shrink-0" />
               {saveError}
             </div>
           )}
 
-          {/* Confirm button */}
           <div className="flex justify-end pt-1">
             <button
               onClick={handleConfirm}
               disabled={!resolvedPath || isSaving}
-              className="flex items-center gap-2 px-5 py-2 text-sm font-medium bg-[var(--accent-main)] hover:bg-[var(--accent-hover)] text-[var(--accent-text)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="button-primary"
             >
               {isSaving && <Loader2 size={14} className="animate-spin" />}
               Confirm and continue

@@ -10,20 +10,19 @@ export default function ProfileEditorTabs({ staffId, title = 'My Profile', descr
   const [tab, setTab] = useState('bio');
 
   return (
-    <div>
-      <h1 className="mb-1 text-xl font-semibold text-[var(--text-primary)]">{title}</h1>
-      {description ? <p className="mb-6 text-sm text-[var(--text-muted)]">{description}</p> : null}
+    <div className="panel-surface overflow-hidden">
+      <div className="panel-header">
+        <h1 className="section-title">{title}</h1>
+        {description ? <p className="section-description">{description}</p> : null}
+      </div>
 
-      <div className="mb-6 flex gap-1 border-b border-[var(--border)]">
+      <div className="border-b border-[var(--border-main)] px-6">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t
-                ? 'border-[var(--blc-red)] text-[var(--text-primary)]'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-            }`}
+            className="app-shell-tab"
+            data-active={tab === t}
             type="button"
           >
             {TAB_LABELS[t]}
@@ -31,9 +30,11 @@ export default function ProfileEditorTabs({ staffId, title = 'My Profile', descr
         ))}
       </div>
 
-      {tab === 'bio' && <BioEditor staffId={staffId} />}
-      {tab === 'projects' && <ProjectsEditor staffId={staffId} />}
-      {tab === 'education' && <EducationEditor staffId={staffId} />}
+      <div className="px-6 py-6">
+        {tab === 'bio' && <BioEditor staffId={staffId} />}
+        {tab === 'projects' && <ProjectsEditor staffId={staffId} />}
+        {tab === 'education' && <EducationEditor staffId={staffId} />}
+      </div>
     </div>
   );
 }

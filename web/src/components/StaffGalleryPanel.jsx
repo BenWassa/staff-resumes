@@ -29,13 +29,13 @@ export default function StaffGalleryPanel({ allStaff }) {
 
   return (
     <div className="h-[calc(100vh-8.25rem)] min-h-[38rem] overflow-hidden px-6 py-6">
-      <div className="grid h-full grid-cols-1 overflow-hidden border border-[var(--border)] bg-[var(--bg-panel)] shadow-sm lg:grid-cols-[22rem_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col border-b border-[var(--border)] bg-[var(--bg-card)] lg:border-b-0 lg:border-r">
-          <div className="border-b border-[var(--border)] px-5 py-5">
+      <div className="panel-surface grid h-full grid-cols-1 overflow-hidden lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col border-b border-[var(--border-main)] bg-[var(--bg-card)] lg:border-b-0 lg:border-r">
+          <div className="panel-header px-5 py-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h1 className="text-xl font-semibold text-[var(--text-primary)]">Staff Profiles</h1>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">
+                <h1 className="section-title">Staff Profiles</h1>
+                <p className="section-description mt-1">
                   Browse and edit staff bios, project history, and education records.
                 </p>
               </div>
@@ -44,7 +44,7 @@ export default function StaffGalleryPanel({ allStaff }) {
               </span>
             </div>
 
-            <label className="mt-4 flex items-center gap-2 border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2.5">
+            <label className="mt-4 flex items-center gap-2 input-field px-3 py-2.5">
               <Search size={15} className="text-[var(--text-muted)]" />
               <input
                 value={query}
@@ -62,7 +62,7 @@ export default function StaffGalleryPanel({ allStaff }) {
                 No staff profiles match that search.
               </div>
             ) : (
-              <div className="divide-y divide-[var(--border)]">
+              <div className="divide-y divide-[var(--border-main)]">
                 {filteredStaff.map((person) => {
                   const isSelected = person.staff_id === activeStaffId;
 
@@ -78,7 +78,7 @@ export default function StaffGalleryPanel({ allStaff }) {
                       type="button"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="mt-0.5 rounded-full border border-[var(--border)] p-2 text-[var(--text-muted)]">
+                        <div className="mt-0.5 rounded-full border border-[var(--border-main)] bg-white/65 p-2 text-[var(--text-muted)]">
                           <UserRound size={15} />
                         </div>
                         <div className="min-w-0">
@@ -98,12 +98,12 @@ export default function StaffGalleryPanel({ allStaff }) {
           </div>
         </aside>
 
-        <section className="min-h-0 overflow-y-auto bg-[var(--bg-main)]">
+        <section className="min-h-0 overflow-y-auto bg-transparent">
           {selectedPerson ? (
             <div className="px-6 py-6 lg:px-8 lg:py-8">
-              <div className="mb-6 flex flex-col gap-3 border-b border-[var(--border)] pb-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="mb-6 flex flex-col gap-3 border-b border-[var(--border-main)] pb-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  <p className="eyebrow-label">
                     Selected Staff Member
                   </p>
                   <h2 className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">

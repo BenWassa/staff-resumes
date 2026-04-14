@@ -38,9 +38,9 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)]">
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)]">
-        <span className="text-[var(--blc-red)] font-bold tracking-tight font-sans">
+    <div className="app-shell">
+      <div className="app-shell-header flex items-center justify-between gap-4">
+        <span className="app-shell-brand font-sans text-lg">
           Blackline <span className="text-[var(--text-muted)] font-normal">Staff Resumes</span>
         </span>
         <div className="flex items-center gap-4">
@@ -55,16 +55,13 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="flex gap-1 px-6 border-b border-[var(--border)]">
+      <div className="app-shell-tabs flex gap-1">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              tab === t
-                ? 'border-[var(--blc-red)] text-[var(--text-primary)]'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-            }`}
+            className="app-shell-tab"
+            data-active={tab === t}
             type="button"
           >
             {TAB_LABELS[t]}
@@ -75,13 +72,21 @@ export default function AdminPage() {
       {tab === 'profiles' && <StaffGalleryPanel allStaff={allStaff} />}
 
       {tab === 'users' && (
-        <div className="max-w-3xl mx-auto px-6 py-8">
-          <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-1">Manage Users</h1>
-          <p className="text-sm text-[var(--text-muted)] mb-6">
-            Link each user to their staff profile and set their role. Staff members can only edit
-            their own profile; admins can generate resumes and manage users.
-          </p>
-          <UserManagementPanel allStaff={allStaff} />
+        <div className="mx-auto max-w-4xl px-6 py-8">
+          <div className="panel-surface overflow-hidden">
+            <div className="panel-header">
+              <div className="section-intro mb-0">
+                <h1 className="section-title">Manage Users</h1>
+                <p className="section-description">
+                  Link each user to their staff profile and set their role. Staff members can only
+                  edit their own profile; admins can generate resumes and manage users.
+                </p>
+              </div>
+            </div>
+            <div className="px-6 py-6">
+              <UserManagementPanel allStaff={allStaff} />
+            </div>
+          </div>
         </div>
       )}
 

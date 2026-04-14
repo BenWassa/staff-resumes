@@ -6,26 +6,29 @@
   :root {
     color-scheme: light;
 
-    --bg-main: #f4f4f0;
+    --bg-main: #f2f0ea;
+    --bg-shell: linear-gradient(180deg, #f7f5f0 0%, #f1efe8 100%);
     --bg-panel: #ffffff;
-    --bg-card: #ffffff;
-    --bg-header: #222222;
-    --bg-footer: #f9f9f9;
-    --bg-input: #ffffff;
-    --bg-hover: #f9f9f9;
+    --bg-card: #fcfbf8;
+    --bg-header: #171717;
+    --bg-footer: #f7f5f0;
+    --bg-input: #fffdfa;
+    --bg-hover: #f6f2ed;
     --bg-selected: #fff5f6;
     --bg-accent-subtle: #fff5f6;
     --bg-danger-subtle: #fdf2f2;
     --bg-header-badge: rgba(255, 255, 255, 0.08);
 
-    --text-main: #000000;
-    --text-muted: #4a4a4a;
+    --text-main: #161616;
+    --text-primary: #161616;
+    --text-muted: #5e574f;
     --text-header: #ffffff;
-    --text-header-muted: #ffffff;
+    --text-header-muted: rgba(255, 255, 255, 0.74);
     --text-accent: #8f1428;
     --text-danger: #8f1428;
 
-    --border-main: #d1d5db;
+    --border-main: #d8d0c7;
+    --border: #d8d0c7;
     --border-accent: #cc2a41;
     --border-accent-subtle: rgba(204, 42, 65, 0.3);
     --border-danger-subtle: rgba(204, 42, 65, 0.24);
@@ -34,12 +37,19 @@
     --accent-main: #cc2a41;
     --accent-hover: #a32134;
     --accent-text: #ffffff;
+    --blc-red: #cc2a41;
 
-    --radius-lg: 0;
-    --radius-md: 0;
-    --radius-sm: 2px;
+    --radius-lg: 1.25rem;
+    --radius-md: 0.9rem;
+    --radius-sm: 0.65rem;
+    --radius: 0.65rem;
 
-    --shadow-panel: 0 10px 25px rgba(0, 0, 0, 0.05);
+    --shadow-panel:
+      0 22px 60px rgba(21, 18, 15, 0.08),
+      0 8px 20px rgba(21, 18, 15, 0.05);
+    --shadow-soft:
+      0 12px 30px rgba(21, 18, 15, 0.06),
+      0 2px 8px rgba(21, 18, 15, 0.04);
 
     --font-sans: Arial, Helvetica, sans-serif;
     --font-mono: Arial, Helvetica, sans-serif;
@@ -51,11 +61,13 @@
   body {
     @apply m-0 min-h-screen;
     background-color: var(--bg-main);
+    background-image:
+      radial-gradient(circle at top, rgba(204, 42, 65, 0.05), transparent 28%),
+      linear-gradient(180deg, #f7f5f0 0%, #f1efe8 100%);
     color: var(--text-main);
     font-family: var(--font-sans);
     font-size: 13pt;
     line-height: 1.6;
-    background-image: none;
   }
 
   #root {
@@ -69,17 +81,127 @@
 }
 
 @layer components {
-  .input-field {
-    @apply w-full px-3 py-2.5 text-sm border bg-white transition-colors outline-none;
+  .app-shell {
+    @apply min-h-screen;
+    background: var(--bg-shell);
+  }
+
+  .app-shell-header {
+    @apply sticky top-0 z-20 border-b px-6 py-4 backdrop-blur-md;
     border-color: var(--border-main);
+    background: rgba(247, 245, 240, 0.88);
+  }
+
+  .app-shell-brand {
+    @apply font-bold tracking-tight;
+    color: var(--blc-red);
+    letter-spacing: -0.02em;
+  }
+
+  .app-shell-tabs {
+    @apply border-b px-6;
+    border-color: var(--border-main);
+    background: rgba(252, 251, 248, 0.72);
+  }
+
+  .app-shell-tab {
+    @apply -mb-px border-b-2 px-4 py-3 text-sm font-medium transition-colors;
+    border-color: transparent;
+    color: var(--text-muted);
+  }
+
+  .app-shell-tab:hover {
     color: var(--text-main);
   }
+
+  .app-shell-tab[data-active='true'] {
+    border-color: var(--accent-main);
+    color: var(--text-main);
+  }
+
+  .panel-surface {
+    @apply border;
+    border-color: var(--border-main);
+    background: rgba(255, 255, 255, 0.84);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .panel-header {
+    @apply border-b px-6 py-5;
+    border-color: var(--border-main);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(252, 251, 248, 0.92) 100%);
+  }
+
+  .button-primary {
+    @apply inline-flex items-center justify-center gap-2 border px-4 py-2.5 text-sm font-semibold transition-colors;
+    border-color: var(--accent-main);
+    background: var(--accent-main);
+    color: var(--accent-text);
+    border-radius: var(--radius-sm);
+  }
+
+  .button-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  .button-primary:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .button-secondary {
+    @apply inline-flex items-center justify-center gap-2 border px-4 py-2.5 text-sm font-medium transition-colors;
+    border-color: var(--border-main);
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--text-main);
+    border-radius: var(--radius-sm);
+  }
+
+  .button-secondary:hover {
+    background: var(--bg-hover);
+  }
+
+  .eyebrow-label {
+    @apply inline-flex items-center gap-2 uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+  }
+
+  .section-intro {
+    @apply mb-6;
+  }
+
+  .section-title {
+    @apply mb-1 text-xl font-semibold;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+  }
+
+  .section-description {
+    @apply text-sm;
+    color: var(--text-muted);
+  }
+
+  .input-field {
+    @apply w-full border px-3 py-2.5 text-sm transition-colors outline-none;
+    border-color: var(--border-main);
+    background: var(--bg-input);
+    color: var(--text-main);
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
   .input-field::placeholder {
     color: var(--text-muted);
     opacity: 0.6;
   }
+
   .input-field:focus {
     border-color: var(--accent-main);
+    box-shadow: 0 0 0 3px rgba(204, 42, 65, 0.08);
   }
 }
 

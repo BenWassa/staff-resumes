@@ -23,8 +23,8 @@ export default function ProfilePage() {
 
   if (!staffId) {
     return (
-      <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center px-4">
-        <div className="text-center space-y-3">
+      <div className="app-shell flex items-center justify-center px-4">
+        <div className="panel-surface max-w-md space-y-3 px-8 py-8 text-center">
           <p className="text-sm" style={{ color: 'var(--text-main)' }}>
             Your account isn&apos;t linked to a staff profile yet.
           </p>
@@ -48,9 +48,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)]">
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)]">
-        <span className="text-[var(--blc-red)] font-bold tracking-tight font-sans">
+    <div className="app-shell">
+      <div className="app-shell-header flex items-center justify-between gap-4">
+        <span className="app-shell-brand font-sans text-lg">
           Blackline <span className="text-[var(--text-muted)] font-normal">Staff Resumes</span>
         </span>
         <div className="flex items-center gap-4">
@@ -65,7 +65,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-8">
+      <div className="mx-auto max-w-4xl px-6 py-8">
         <ProfileEditorTabs
           staffId={staffId}
           title="My Profile"
