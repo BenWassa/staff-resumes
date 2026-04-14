@@ -15,6 +15,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import logging
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -22,6 +23,9 @@ from web.api.firebase_admin_init import initialize
 from web.api.auth import require_admin, verify_token
 from web.api.firestore_store import get_person_data, list_people
 from web.api.runner import generate
+from web.api.config_store import get_config_status, validate_pursuits_root, save_config
+
+log = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Staff Resumes API",
@@ -57,9 +61,23 @@ app.add_middleware(
 # ── App startup ─────────────────────────────────────────────────────────────────
 
 
+def _startup_health_check() -> None:
+    """Log the status of critical paths at startup."""
+    config_status = get_config_status()
+    pursuits_root = config_status.get("pursuits_root")
+    pursuits_root_exists = config_status.get("pursuits_root_exists")
+
+    log.info("Startup path check:")
+    log.info("  pursuits_root: %s", pursuits_root or "(not configured)")
+    log.info("  pursuits_root_exists: %s", pursuits_root_exists)
+    log.info("  Firebase project: %s", os.environ.get("FIREBASE_PROJECT_ID") or "(not set)")
+
+
 @app.on_event("startup")
 def on_startup():
     initialize()
+    _startup_health_check()
+
     # Sync pursuits from the local file system in the background so startup
     # is never blocked by a slow or unavailable OneDrive path.
     def _sync():
@@ -377,6 +395,38 @@ def api_save_session(
         }
     )
     return {"ok": True}
+
+
+# ── Config endpoints ──────────────────────────────────────────────────────────
+
+@app.get("/api/config/paths")
+def api_get_config_paths(token: dict = Depends(verify_token)):
+    """Return current paths configuration and their status."""
+    return get_config_status()
+
+
+class ConfigPathsUpdate(BaseModel):
+    pursuits_root: str | None = None
+
+
+@app.post("/api/config/paths")
+def api_set_config_paths(
+    body: ConfigPathsUpdate, token: dict = Depends(require_admin)
+):
+    """Admin: update and validate configuration paths."""
+    if body.pursuits_root:
+        resolved, error = validate_pursuits_root(body.pursuits_root)
+        if error:
+            raise HTTPException(status_code=400, detail=error)
+        save_config({"pursuits_root": str(resolved)})
+
+    return {"ok": True, **get_config_status()}
+
+
+@app.get("/api/health")
+def api_health(token: dict = Depends(verify_token)):
+    """Return startup health status of critical paths."""
+    return get_config_status()
 
 
 # ── Admin user management endpoints ───────────────────────────────────────────

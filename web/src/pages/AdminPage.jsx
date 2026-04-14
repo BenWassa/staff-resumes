@@ -1,6 +1,7 @@
 import { signOut } from 'firebase/auth';
-import { LogOut } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ResumeModal from '../components/ResumeModal';
 import StaffGalleryPanel from '../components/StaffGalleryPanel';
 import UserManagementPanel from '../components/UserManagementPanel';
@@ -17,6 +18,7 @@ const TAB_LABELS = {
 
 export default function AdminPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState('profiles');
   const [allStaff, setAllStaff] = useState([]);
   const [showResumeModal, setShowResumeModal] = useState(false);
@@ -45,6 +47,13 @@ export default function AdminPage() {
         </span>
         <div className="flex items-center gap-4">
           <span className="text-xs text-[var(--text-muted)]">{user?.email}</span>
+          <button
+            onClick={() => navigate('/settings')}
+            className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            title="Settings"
+          >
+            <Settings size={14} />
+          </button>
           <button
             onClick={handleSignOut}
             className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"

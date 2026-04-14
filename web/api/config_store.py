@@ -88,3 +88,38 @@ def extract_pursuits_root(picked: str) -> Path | None:
         return parent
 
     return None
+
+
+def validate_pursuits_root(raw_path: str) -> tuple[Path | None, str | None]:
+    """Validate a user-picked path and return (resolved_path, error_msg).
+
+    On success, returns (resolved_path, None).
+    On failure, returns (None, error_message).
+    """
+    if not raw_path or not raw_path.strip():
+        return None, "Path cannot be empty."
+
+    candidate = extract_pursuits_root(raw_path.strip())
+    if candidate is None:
+        return None, "Path does not contain project folders matching pattern 'Client Name - YYYYNNN'."
+
+    return candidate, None
+
+
+def get_config_status() -> dict:
+    """Return current config and status of configured paths.
+
+    Used by frontend to determine if setup is needed.
+    """
+    config = load_config()
+    pursuits_root = config.get("pursuits_root")
+    pursuits_root_exists = False
+
+    if pursuits_root:
+        p = Path(pursuits_root)
+        pursuits_root_exists = p.exists() and _looks_like_pursuits_root(p)
+
+    return {
+        "pursuits_root": pursuits_root,
+        "pursuits_root_exists": pursuits_root_exists,
+    }

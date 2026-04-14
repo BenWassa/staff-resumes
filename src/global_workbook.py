@@ -106,7 +106,8 @@ def build_global_workbook(config: RuntimeConfig) -> GlobalWorkbookResult:
 
     if not person_workbooks_dir.exists():
         raise FileNotFoundError(
-            f"Person workbook folder not found: {person_workbooks_dir}"
+            f"Person workbook folder not found: {person_workbooks_dir}\n"
+            f"Please configure this path via the Settings page."
         )
 
     source_files = _iter_person_workbook_files(person_workbooks_dir)

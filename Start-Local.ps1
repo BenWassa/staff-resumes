@@ -68,6 +68,17 @@ if (-not (Test-Path (Join-Path $webDir ".env.local"))) {
 
 $env:Path = "$(Join-Path $webDir 'venv\Scripts');$env:Path"
 
+# Check if config has been set up
+$configPath = Join-Path $env:APPDATA "ResumeGenerator\config.json"
+$configExists = Test-Path $configPath
+if (-not $configExists) {
+    Write-Host ""
+    Write-Host "⚠️  Setup Wizard" -ForegroundColor Yellow
+    Write-Host "You'll need to configure your Projects folder on first run." -ForegroundColor Yellow
+    Write-Host "This will open automatically when you first access the admin panel." -ForegroundColor Yellow
+    Write-Host ""
+}
+
 Start-Process "http://localhost:5174"
 
 Push-Location $webDir
