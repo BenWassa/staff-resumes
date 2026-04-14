@@ -69,6 +69,29 @@ def get_pursuits_root() -> Path | None:
     return p if p.exists() else None
 
 
+def detect_proposal_tool_runtime_root(pursuits_root: Path) -> Path | None:
+    """Return proposal_tool_runtime root if it exists under the pursuits root."""
+    runtime_root = (
+        pursuits_root
+        / "_Proposal Objects"
+        / "Staff Resumes"
+        / "proposal_tool_runtime"
+    )
+    person_workbooks = runtime_root / "person_workbooks"
+
+    if not runtime_root.is_dir() or not person_workbooks.is_dir():
+        return None
+
+    has_workbooks = any(
+        child.is_file() and child.suffix.lower() in {".xlsx", ".xlsm"}
+        for child in person_workbooks.iterdir()
+    )
+    if not has_workbooks:
+        return None
+
+    return runtime_root
+
+
 def _looks_like_pursuits_root(path: Path) -> bool:
     """True if this folder directly contains project subdirs matching the naming pattern."""
     if not path.is_dir():
@@ -79,23 +102,34 @@ def _looks_like_pursuits_root(path: Path) -> bool:
     return False
 
 
+def _iter_candidate_ancestors(path: Path):
+    """Yield path, then each parent up to filesystem root."""
+    current = path
+    while True:
+        yield current
+        if current.parent == current:
+            break
+        current = current.parent
+
+
 def extract_pursuits_root(picked: str) -> Path | None:
-    """Given a user-picked path (possibly one level too deep), return the pursuits root.
+    """Given a user-picked path, normalize it to the pursuits root.
 
     Accepts:
-    - The pursuits root itself  (contains project subdirs like "Client - YYYYNNN")
-    - A project subfolder one level inside the root
+    - The pursuits root itself (contains project subdirs like "Client - YYYYNNN")
+    - Any nested subfolder inside a project or inside the pursuits root
 
-    Returns None if neither the path nor its parent looks like the pursuits root.
+    Returns the nearest ancestor that looks like the pursuits root, otherwise None.
     """
-    candidate = Path(picked).resolve()
+    try:
+        candidate = Path(picked).resolve()
+    except Exception:
+        return None
 
-    if _looks_like_pursuits_root(candidate):
-        return candidate
-
-    parent = candidate.parent
-    if _looks_like_pursuits_root(parent):
-        return parent
+    start = candidate if candidate.is_dir() else candidate.parent
+    for ancestor in _iter_candidate_ancestors(start):
+        if _looks_like_pursuits_root(ancestor):
+            return ancestor
 
     return None
 

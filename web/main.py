@@ -20,7 +20,14 @@ from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from web.api.config_store import get_data_dir, get_config_status, save_config, validate_pursuits_root
+from web.api.config_store import (
+    detect_proposal_tool_runtime_root,
+    get_config_status,
+    get_data_dir,
+    get_pursuits_root,
+    save_config,
+    validate_pursuits_root,
+)
 from web.api.local_store import (
     get_person_data,
     get_session,
@@ -73,6 +80,24 @@ def _startup_health_check() -> None:
     log.info("  pursuits_root_exists: %s", pursuits_root_exists)
 
 
+def _apply_runtime_env_from_config() -> None:
+    """Apply runtime environment overrides derived from configured pursuits root."""
+    pursuits_root = get_pursuits_root()
+    if not pursuits_root:
+        return
+
+    os.environ["LOCAL_PURSUITS_ROOT"] = str(pursuits_root)
+
+    runtime_root = detect_proposal_tool_runtime_root(pursuits_root)
+    if runtime_root is None:
+        return
+
+    os.environ["ALLOW_EXTERNAL_PATHS"] = "true"
+    os.environ["STAFF_RESUMES_TOOL_ROOT"] = str(runtime_root)
+    os.environ["REFRESH_GLOBAL_WORKBOOK_ON_RUN"] = "true"
+    log.info("Detected proposal tool runtime root: %s", runtime_root)
+
+
 def _trigger_pursuits_sync_background() -> None:
     def _sync():
         sync_pursuits_from_disk()
@@ -82,6 +107,7 @@ def _trigger_pursuits_sync_background() -> None:
 
 @app.on_event("startup")
 def on_startup():
+    _apply_runtime_env_from_config()
     _startup_health_check()
     _trigger_pursuits_sync_background()
 
@@ -384,6 +410,7 @@ def api_set_config_paths(body: ConfigPathsUpdate):
         if error:
             raise HTTPException(status_code=400, detail=error)
         save_config({"pursuits_root": str(resolved)})
+        _apply_runtime_env_from_config()
         _trigger_pursuits_sync_background()
 
     return {"ok": True, **get_config_status()}

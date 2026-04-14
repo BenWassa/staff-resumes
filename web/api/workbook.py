@@ -19,7 +19,9 @@ from src.runtime_config import get_runtime_config
 
 def _workbook_path() -> Path:
     runtime = get_runtime_config()
-    return resolve_workbook_path(runtime, refresh_if_configured=False)
+    # In web mode we always refresh the global workbook when configured, so staff
+    # profiles come from the latest person_workbooks source.
+    return resolve_workbook_path(runtime, refresh_if_configured=True)
 
 
 _ALIAS_REVERSE = {value: key for key, value in PERSON_SHEET_ALIASES.items()}
