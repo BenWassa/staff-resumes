@@ -268,6 +268,7 @@ export default function ProjectsEditor({ staffId }) {
                 type="text"
                 value={newProject.key}
                 onChange={(e) => setNewProject((p) => ({ ...p, key: e.target.value }))}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
                 className={inputCls}
                 placeholder="CLIENT-YEAR"
                 autoFocus
@@ -278,6 +279,7 @@ export default function ProjectsEditor({ staffId }) {
                 type="text"
                 value={newProject.client}
                 onChange={(e) => setNewProject((p) => ({ ...p, client: e.target.value }))}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
                 className={inputCls}
               />
             </ProjectField>
@@ -287,6 +289,7 @@ export default function ProjectsEditor({ staffId }) {
               type="text"
               value={newProject.title}
               onChange={(e) => setNewProject((p) => ({ ...p, title: e.target.value }))}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
               className={inputCls}
             />
           </ProjectField>
