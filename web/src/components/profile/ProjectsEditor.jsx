@@ -230,7 +230,7 @@ export default function ProjectsEditor({ staffId }) {
                   </ProjectField>
                 </div>
 
-                {errMsg && <p className="text-xs text-red-400">{errMsg}</p>}
+                {errMsg && <p className="text-xs text-[var(--text-danger)]">{errMsg}</p>}
 
                 <div className="flex items-center gap-3 pt-3 mt-4 border-t border-[var(--border-main)]">
                   <button
@@ -243,7 +243,7 @@ export default function ProjectsEditor({ staffId }) {
                   </button>
 
                   {isSaved && (
-                    <span className="flex items-center gap-1.5 text-sm font-semibold text-green-600">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--accent-main)]">
                       <CheckCircle2 size={16} /> Saved
                     </span>
                   )}
@@ -288,7 +288,7 @@ export default function ProjectsEditor({ staffId }) {
 
       {adding ? (
         <div className="panel-surface overflow-hidden bg-[var(--bg-card)] mt-8">
-          <div className="panel-header py-4 bg-white/50">
+          <div className="panel-header py-4 bg-[var(--bg-panel)]/50">
             <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--accent-main)]">New project</h3>
           </div>
           <div className="p-6 space-y-4">

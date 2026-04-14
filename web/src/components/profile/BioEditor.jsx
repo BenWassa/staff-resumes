@@ -193,12 +193,12 @@ export default function BioEditor({ staffId }) {
         </button>
 
         {saveState === 'saved' && (
-          <span className="flex items-center gap-2 text-sm font-semibold text-green-600">
+          <span className="flex items-center gap-2 text-sm font-semibold text-[var(--accent-main)]">
             <CheckCircle2 size={16} /> Update Successful
           </span>
         )}
         {saveState === 'error' && (
-          <span className="text-sm font-medium text-[var(--accent-main)]">
+          <span className="text-sm font-medium text-[var(--text-danger)]">
             {errorMsg}
           </span>
         )}

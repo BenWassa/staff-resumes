@@ -1,4 +1,5 @@
 import { Navigate, useParams } from 'react-router-dom';
+import { UserRound } from 'lucide-react';
 import ProfileEditorTabs from '../components/profile/ProfileEditorTabs';
 
 export default function ProfilePage() {
@@ -10,17 +11,24 @@ export default function ProfilePage() {
 
   return (
     <div className="app-shell">
-      <div className="app-shell-header flex items-center justify-between gap-4">
-        <span className="app-shell-brand font-sans text-xl">
-          Blackline <span className="font-normal text-[var(--text-muted)]">Staff Resumes</span>
-        </span>
-        <div className="flex items-center gap-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">Local session</span>
+      <header className="app-shell-header">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            <h1 className="app-shell-brand text-2xl">
+              Blackline <span className="font-normal text-[var(--text-muted)]">Staff Resumes</span>
+            </h1>
+            <div className="hidden h-6 w-px bg-[var(--border-main)] sm:block" />
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-main)] bg-[var(--bg-card)] px-3 py-1 font-mono text-xs uppercase tracking-[0.18em] text-[var(--text-muted)] shadow-sm">
+                <UserRound className="h-3.5 w-3.5" />
+                Profile
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="mx-auto max-w-5xl px-6 py-12">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <ProfileEditorTabs
           staffId={staffId}
           title="Staff Profile"

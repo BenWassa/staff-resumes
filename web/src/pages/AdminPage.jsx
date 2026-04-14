@@ -1,29 +1,21 @@
-import { Settings } from 'lucide-react';
+import { FileText, Settings, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ResumeModal from '../components/ResumeModal';
 import StaffGalleryPanel from '../components/StaffGalleryPanel';
 import { apiFetch } from '../utils/apiFetch';
 
-const TABS = ['resumes', 'profiles'];
-const TAB_LABELS = {
-  resumes: 'Generate Resumes',
-  profiles: 'Staff Profiles',
-};
-
 export default function AdminPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('profiles');
   const [allStaff, setAllStaff] = useState([]);
   const [showResumeModal, setShowResumeModal] = useState(false);
 
   useEffect(() => {
-    if (tab !== 'profiles') return;
     apiFetch('/api/people')
       .then((r) => r.json())
       .then((data) => setAllStaff(data))
       .catch(() => {});
-  }, [tab]);
+  }, []);
 
   useEffect(() => {
     apiFetch('/api/config/paths')
@@ -36,55 +28,54 @@ export default function AdminPage() {
       .catch(() => {});
   }, [navigate]);
 
-  useEffect(() => {
-    setShowResumeModal(tab === 'resumes');
-  }, [tab]);
-
   return (
     <div className="app-shell">
-      <div className="app-shell-header flex items-center justify-between gap-4">
-        <span className="app-shell-brand font-sans text-xl">
-          Blackline <span className="text-[var(--text-muted)] font-normal">Staff Resumes</span>
-        </span>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">Local session</span>
+      <header className="app-shell-header">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            <h1 className="app-shell-brand text-2xl">
+              Blackline <span className="font-normal text-[var(--text-muted)]">Staff Resumes</span>
+            </h1>
+            <div className="hidden h-6 w-px bg-[var(--border-main)] sm:block" />
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-main)] bg-[var(--bg-card)] px-3 py-1 font-mono text-xs uppercase tracking-[0.18em] text-[var(--text-muted)] shadow-sm">
+                <Users className="h-3.5 w-3.5" />
+                Directory
+              </div>
+            </div>
           </div>
-          <button
-            onClick={() => navigate('/settings')}
-            className="flex items-center gap-2 rounded-full border border-[var(--border-main)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-all hover:border-[var(--accent-main)] hover:text-[var(--accent-main)] hover:shadow-sm"
-            title="Settings"
-          >
-            <Settings size={14} />
-            <span>Settings</span>
-          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              className="button-secondary"
+              onClick={() => navigate('/settings')}
+              title="Settings"
+              type="button"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
+            </button>
+            <button
+              className="button-primary shadow-lg"
+              onClick={() => setShowResumeModal(true)}
+              type="button"
+            >
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Generate Resumes</span>
+              <span className="sm:hidden">Generate</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="app-shell-tabs flex gap-1">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="app-shell-tab"
-            data-active={tab === t}
-            type="button"
-          >
-            {TAB_LABELS[t]}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'profiles' && <StaffGalleryPanel allStaff={allStaff} />}
+      <main className="mx-auto flex max-w-7xl flex-col p-4 sm:p-6 lg:p-8">
+        <StaffGalleryPanel allStaff={allStaff} />
+      </main>
 
       {showResumeModal && (
         <ResumeModal
           isOpen={showResumeModal}
-          onClose={() => {
-            setShowResumeModal(false);
-            setTab('profiles');
-          }}
+          onClose={() => setShowResumeModal(false)}
         />
       )}
     </div>

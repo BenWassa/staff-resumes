@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, CheckCircle, FolderOpen } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle, FolderOpen, Settings } from 'lucide-react';
 import { apiFetch } from '../utils/apiFetch';
 import { selectFolder } from '../utils/selectFolder';
 
@@ -71,21 +71,31 @@ export default function SettingsPage() {
 
   return (
     <div className="app-shell">
-      <div className="app-shell-header flex items-center justify-between gap-4">
-        <button
-          onClick={() => navigate('/admin')}
-          className="flex items-center gap-2 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
-        >
-          <ArrowLeft size={18} />
-          Back to Admin
-        </button>
-        <span className="app-shell-brand font-sans text-lg">
-          Blackline <span className="font-normal text-[var(--text-muted)]">Settings</span>
-        </span>
-        <div className="w-24"></div>
-      </div>
+      <header className="app-shell-header">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            <h1 className="app-shell-brand text-2xl">
+              Blackline <span className="font-normal text-[var(--text-muted)]">Staff Resumes</span>
+            </h1>
+            <div className="hidden h-6 w-px bg-[var(--border-main)] sm:block" />
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-main)] bg-[var(--bg-card)] px-3 py-1 font-mono text-xs uppercase tracking-[0.18em] text-[var(--text-muted)] shadow-sm">
+                <Settings className="h-3.5 w-3.5" />
+                Settings
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/admin')}
+            className="button-secondary"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Admin
+          </button>
+        </div>
+      </header>
 
-      <div className="mx-auto max-w-4xl px-6 py-12">
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="section-intro mb-10">
           <h1 className="section-title text-3xl">Configuration</h1>
           <p className="section-description text-base">

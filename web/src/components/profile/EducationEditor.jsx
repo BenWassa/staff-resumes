@@ -152,7 +152,7 @@ export default function EducationEditor({ staffId }) {
       </div>
 
       {entries.length > 1 && (
-        <div className="rounded-xl border border-[var(--border-main)] bg-white p-6">
+        <div className="panel-surface p-6 mt-8">
           <p className="eyebrow-label mb-4">
             Drag to reorder
           </p>
@@ -188,12 +188,12 @@ export default function EducationEditor({ staffId }) {
 
         <div>
           {saveState === 'saved' && (
-            <span className="flex items-center gap-2 text-sm font-semibold text-green-600">
+            <span className="flex items-center gap-2 text-sm font-semibold text-[var(--accent-main)]">
               <CheckCircle2 size={16} /> Update Successful
             </span>
           )}
           {saveState === 'error' && (
-            <span className="text-sm font-medium text-[var(--accent-main)]">
+            <span className="text-sm font-medium text-[var(--text-danger)]">
               {errorMsg}
             </span>
           )}
