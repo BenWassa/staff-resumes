@@ -1,0 +1,106 @@
+[debug] [2026-04-14T13:06:01.095Z] ----------------------------------------------------------------------
+[debug] [2026-04-14T13:06:01.097Z] Command:       C:\Users\ben.haddon\.local\node-v24.14.0-win-x64\node.exe C:\Users\ben.haddon\.local\node-v24.14.0-win-x64\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting --debug
+[debug] [2026-04-14T13:06:01.097Z] CLI Version:   15.14.0
+[debug] [2026-04-14T13:06:01.098Z] Platform:      win32
+[debug] [2026-04-14T13:06:01.098Z] Node Version:  v24.14.0
+[debug] [2026-04-14T13:06:01.098Z] Time:          Tue Apr 14 2026 09:06:01 GMT-0400 (Eastern Daylight Time)
+[debug] [2026-04-14T13:06:01.098Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-14T13:06:02.462Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-14T13:06:02.464Z] > authorizing via signed-in user (benblc4236@gmail.com)
+[debug] [2026-04-14T13:06:02.464Z] [iam] checking project staff-resumes for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-04-14T13:06:02.465Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:02.466Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:02.467Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/staff-resumes:testIamPermissions [none]
+[debug] [2026-04-14T13:06:02.467Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/staff-resumes:testIamPermissions  x-goog-user-project=staff-resumes
+[debug] [2026-04-14T13:06:02.467Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/staff-resumes:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-14T13:06:02.762Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/staff-resumes:testIamPermissions 200
+[debug] [2026-04-14T13:06:02.763Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/staff-resumes:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-14T13:06:02.764Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:02.764Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:02.764Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/staff-resumes [none]
+[debug] [2026-04-14T13:06:03.076Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/staff-resumes 200
+[debug] [2026-04-14T13:06:03.076Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/staff-resumes {"projectId":"staff-resumes","projectNumber":"161189513947","displayName":"staff-resumes","name":"projects/staff-resumes","resources":{"hostingSite":"staff-resumes"},"state":"ACTIVE","etag":"1_af1c753e-74e5-49f5-a4fd-1e2063108b9d"}
+[info] 
+[info] === Deploying to 'staff-resumes'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2026-04-14T13:06:03.079Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:03.079Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:03.080Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/staff-resumes/versions [none]
+[debug] [2026-04-14T13:06:03.080Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/staff-resumes/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2026-04-14T13:06:03.986Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/staff-resumes/versions 200
+[debug] [2026-04-14T13:06:03.986Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/staff-resumes/versions {"name":"projects/161189513947/sites/staff-resumes/versions/b657abc326017b7c","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[info] i  hosting[staff-resumes]: beginning deploy... 
+[info] i  hosting[staff-resumes]: found 3 files in web/dist/web 
+[debug] [2026-04-14T13:06:03.997Z] [hosting] uploading with 200 concurrency
+[debug] [2026-04-14T13:06:03.999Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:03.999Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:04.000Z] [hosting] hash cache [d2ViXGRpc3Rcd2Vi] stored for 3 files
+[debug] [2026-04-14T13:06:04.000Z] [hosting][hash queue][FINAL] {"max":0,"min":0,"avg":0,"active":0,"complete":3,"success":3,"errored":0,"retried":0,"total":3,"elapsed":2}
+[debug] [2026-04-14T13:06:04.000Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/161189513947/sites/staff-resumes/versions/b657abc326017b7c:populateFiles [none]
+[debug] [2026-04-14T13:06:04.001Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/161189513947/sites/staff-resumes/versions/b657abc326017b7c:populateFiles {"files":{"/index.html":"8d4aaa92cbf0ce65ff946e14b753499d9c44024043c8c92d8de97c7abfdf959e","/assets/index-Dg9tuRtU.js":"2c808511416f38e8f9f405ca6b171a40be11c58ce3ef8ff66f0da5a4b6657140","/assets/index-CYUavQsy.css":"fd199528221099b3dab4744d026527f1e7a2e08b12c9fddfe0d82e18e91c4482"}}
+[debug] [2026-04-14T13:06:04.491Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/161189513947/sites/staff-resumes/versions/b657abc326017b7c:populateFiles 200
+[debug] [2026-04-14T13:06:04.491Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/161189513947/sites/staff-resumes/versions/b657abc326017b7c:populateFiles {"uploadUrl":"https://upload-firebasehosting.googleapis.com/upload/sites/staff-resumes/versions/b657abc326017b7c/files"}
+[debug] [2026-04-14T13:06:04.491Z] [hosting][populate queue][FINAL] {"max":492,"min":492,"avg":492,"active":0,"complete":1,"success":1,"errored":0,"retried":0,"total":1,"elapsed":492}
+[debug] [2026-04-14T13:06:04.492Z] [hosting] uploads queued: 0
+[debug] [2026-04-14T13:06:04.492Z] [hosting][upload queue][FINAL] {"max":0,"min":9999999999,"avg":0,"active":0,"complete":0,"success":0,"errored":0,"retried":0,"total":0,"elapsed":1776171964492}
+[info] i  hosting: upload complete 
+[info] +  hosting[staff-resumes]: file upload complete 
+[debug] [2026-04-14T13:06:04.492Z] [hosting] deploy completed after 504ms
+[debug] [2026-04-14T13:06:04.493Z] [
+  {
+    "config": {
+      "public": "web/dist/web",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "run": {
+            "serviceId": "staff-resumes",
+            "region": "us-east4"
+          }
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "site": "staff-resumes"
+    },
+    "version": "projects/161189513947/sites/staff-resumes/versions/b657abc326017b7c"
+  }
+]
+[info] i  hosting[staff-resumes]: finalizing version... 
+[debug] [2026-04-14T13:06:04.494Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:04.494Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:04.494Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/projects/staff-resumes/locations/-/functions [none]
+[debug] [2026-04-14T13:06:04.730Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/projects/staff-resumes/locations/-/functions 403
+[debug] [2026-04-14T13:06:04.731Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/projects/staff-resumes/locations/-/functions {"error":{"code":403,"message":"Cloud Functions API has not been used in project staff-resumes before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"SERVICE_DISABLED","domain":"googleapis.com","metadata":{"service":"cloudfunctions.googleapis.com","serviceTitle":"Cloud Functions API","consumer":"projects/staff-resumes","activationUrl":"https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes","containerInfo":"staff-resumes"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Cloud Functions API has not been used in project staff-resumes before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developers console API activation","url":"https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes"}]}]}}
+[debug] [2026-04-14T13:06:04.732Z] [functions] failed to list functions for staff-resumes
+[debug] [2026-04-14T13:06:04.732Z] [functions] Request to https://cloudfunctions.googleapis.com/v1/projects/staff-resumes/locations/-/functions had HTTP Error: 403, Cloud Functions API has not been used in project staff-resumes before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.
+[debug] [2026-04-14T13:06:04.732Z] Deploying hosting site staff-resumes, did not have permissions to check for backends:  Failed to list functions for staff-resumes {"name":"FirebaseError","children":[],"exit":1,"message":"Failed to list functions for staff-resumes","original":{"name":"FirebaseError","children":[],"context":{"body":{"error":{"code":403,"message":"Cloud Functions API has not been used in project staff-resumes before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"SERVICE_DISABLED","domain":"googleapis.com","metadata":{"service":"cloudfunctions.googleapis.com","serviceTitle":"Cloud Functions API","consumer":"projects/staff-resumes","activationUrl":"https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes","containerInfo":"staff-resumes"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Cloud Functions API has not been used in project staff-resumes before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developers console API activation","url":"https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes"}]}]}},"response":{"statusCode":403}},"exit":1,"message":"Request to https://cloudfunctions.googleapis.com/v1/projects/staff-resumes/locations/-/functions had HTTP Error: 403, Cloud Functions API has not been used in project staff-resumes before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/cloudfunctions.googleapis.com/overview?project=staff-resumes then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.","status":403},"status":403}
+[debug] [2026-04-14T13:06:04.734Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:04.734Z] Checked if tokens are valid: true, expires at: 1776175531523
+[debug] [2026-04-14T13:06:04.734Z] >>> [apiv2][query] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/staff-resumes/versions/b657abc326017b7c updateMask=status%2Cconfig
+[debug] [2026-04-14T13:06:04.734Z] >>> [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/staff-resumes/versions/b657abc326017b7c {"status":"FINALIZED","config":{"rewrites":[{"glob":"/api/**","run":{"serviceId":"staff-resumes","region":"us-east4"}},{"glob":"**","path":"/index.html"}]}}
+[debug] [2026-04-14T13:06:05.016Z] <<< [apiv2][status] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/staff-resumes/versions/b657abc326017b7c 404
+[debug] [2026-04-14T13:06:05.016Z] <<< [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/staff-resumes/versions/b657abc326017b7c {"error":{"code":404,"message":"Requested entity was not found.","status":"NOT_FOUND"}}
+[error] 
+[error] Error: Request to https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/staff-resumes/versions/b657abc326017b7c?updateMask=status%2Cconfig had HTTP Error: 404, Requested entity was not found.
+[debug] [2026-04-14T13:06:05.018Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 404,
+      "message": "Requested entity was not found.",
+      "status": "NOT_FOUND"
+    }
+  },
+  "response": {
+    "statusCode": 404
+  }
+}

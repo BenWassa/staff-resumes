@@ -57,6 +57,13 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     initialize()
+    # Sync pursuits from the local file system in the background so startup
+    # is never blocked by a slow or unavailable OneDrive path.
+    def _sync():
+        from web.api.pursuits_sync import sync_pursuits_from_disk
+        sync_pursuits_from_disk()
+
+    threading.Thread(target=_sync, daemon=True).start()
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────

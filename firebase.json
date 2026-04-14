@@ -6,8 +6,8 @@
       {
         "source": "/api/**",
         "run": {
-          "serviceId": "resume-generator-api",
-          "region": "us-central1"
+          "serviceId": "staff-resumes",
+          "region": "us-east4"
         }
       },
       {
