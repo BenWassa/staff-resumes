@@ -331,7 +331,7 @@ def api_list_sessions(token: dict = Depends(verify_token)):
     else:
         docs = (
             db.collection("sessions")
-            .where("saved_by", "==", uid)
+            .where(filter=firestore.FieldFilter("saved_by", "==", uid))
             .order_by("saved_at", direction=firestore.Query.DESCENDING)
             .limit(20)
             .stream()
@@ -367,3 +367,45 @@ def api_save_session(
         }
     )
     return {"ok": True}
+
+
+# ── Admin user management endpoints ───────────────────────────────────────────
+
+
+class UserUpdate(BaseModel):
+    role: str | None = None
+    staff_id: str | None = None
+
+
+@app.get("/api/admin/users")
+def api_list_users(token: dict = Depends(require_admin)):
+    """Admin: list all registered users."""
+    from firebase_admin import firestore
+
+    db = firestore.client()
+    docs = db.collection("users").stream()
+    return [{"uid": d.id, **d.to_dict()} for d in docs]
+
+
+@app.patch("/api/admin/users/{uid}")
+def api_update_user(uid: str, body: UserUpdate, token: dict = Depends(require_admin)):
+    """Admin: update a user's role and/or staff_id link."""
+    from firebase_admin import firestore
+
+    db = firestore.client()
+    ref = db.collection("users").document(uid)
+    if not ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    updates: dict = {}
+    if body.role is not None:
+        if body.role not in ("admin", "staff"):
+            raise HTTPException(status_code=400, detail="role must be 'admin' or 'staff'.")
+        updates["role"] = body.role
+    if body.staff_id is not None:
+        updates["staff_id"] = body.staff_id or None
+
+    if updates:
+        ref.update(updates)
+
+    return {"ok": True, **updates}

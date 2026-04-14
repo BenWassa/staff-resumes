@@ -45,7 +45,7 @@ def get_person_data(person_name: str) -> dict:
     db = _db()
 
     # Try to find the staff document by display_name
-    query = db.collection("staff").where("display_name", "==", person_name).limit(1)
+    query = db.collection("staff").where(filter=firestore.FieldFilter("display_name", "==", person_name)).limit(1)
     results = list(query.stream())
 
     if results:

@@ -1,11 +1,26 @@
 import { signOut } from 'firebase/auth';
 import { LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import ResumeModal from '../components/ResumeModal';
+import UserManagementPanel from '../components/UserManagementPanel';
+import { apiFetch } from '../utils/apiFetch';
+
+const TABS = ['resumes', 'users'];
+const TAB_LABELS = { resumes: 'Generate Resumes', users: 'Manage Users' };
 
 export default function AdminPage() {
   const { user } = useAuth();
+  const [tab, setTab] = useState('resumes');
+  const [allStaff, setAllStaff] = useState([]);
+
+  useEffect(() => {
+    apiFetch('/api/people')
+      .then((r) => r.json())
+      .then((data) => setAllStaff(data))
+      .catch(() => {});
+  }, []);
 
   async function handleSignOut() {
     await signOut(auth);
@@ -14,7 +29,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-main)]">
-      {/* Minimal top bar */}
+      {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)]">
         <span className="text-[var(--blc-red)] font-bold tracking-tight font-sans">
           Blackline <span className="text-[var(--text-muted)] font-normal">Staff Resumes</span>
@@ -31,7 +46,36 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <ResumeModal isOpen={true} onClose={() => {}} />
+      {/* Tab bar */}
+      <div className="flex gap-1 px-6 border-b border-[var(--border)]">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              tab === t
+                ? 'border-[var(--blc-red)] text-[var(--text-primary)]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            {TAB_LABELS[t]}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {tab === 'resumes' && <ResumeModal isOpen={true} onClose={() => {}} />}
+
+      {tab === 'users' && (
+        <div className="max-w-3xl mx-auto px-6 py-8">
+          <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-1">Manage Users</h1>
+          <p className="text-sm text-[var(--text-muted)] mb-6">
+            Link each user to their staff profile and set their role. Staff members can only edit
+            their own profile; admins can generate resumes and manage users.
+          </p>
+          <UserManagementPanel allStaff={allStaff} />
+        </div>
+      )}
     </div>
   );
 }
