@@ -27,7 +27,7 @@ if (-not (Test-Command "python")) {
 
 Write-Host "Starting Staff Resumes local site..." -ForegroundColor Cyan
 Write-Host "Frontend: http://localhost:5174" -ForegroundColor Yellow
-Write-Host "API: http://localhost:8002" -ForegroundColor Yellow
+Write-Host "API: http://localhost:8012" -ForegroundColor Yellow
 Write-Host ""
 
 if (-not (Test-Path (Join-Path $webDir "node_modules"))) {
