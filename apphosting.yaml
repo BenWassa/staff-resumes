@@ -1,4 +1,0 @@
-apiVersion: apphosting.googleapis.com/v1
-runtime: custom
-buildConfig:
-  dockerfile: Dockerfile
