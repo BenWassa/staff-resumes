@@ -23,7 +23,10 @@ from web.api.auth import require_admin, verify_token
 from web.api.firestore_store import get_person_data, list_people
 from web.api.runner import generate
 
-app = FastAPI(title="Staff Resumes API")
+app = FastAPI(
+    title="Staff Resumes API",
+    version="0.1.0"
+)
 JOB_LOCK = threading.Lock()
 JOBS: dict[str, dict] = {}
 
