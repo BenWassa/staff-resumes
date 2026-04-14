@@ -1,0 +1,6 @@
+apiVersion: apphosting.googleapis.com/v1
+runtime: python
+env: flex
+entrypoint: gunicorn web.main:app --bind 0.0.0.0:$PORT --workers 2 --timeout 600
+envVariables:
+  GOOGLE_APPLICATION_CREDENTIALS: /app/service-account.json
