@@ -1,8 +1,93 @@
-# BLC Staff Resumes
+# staff-resumes
 
-![License: MIT License](https://img.shields.io/badge/License-mit-blue.svg)
+> Local web app for managing staff profiles and generating proposal resumes from a shared workbook. One-click startup, no cloud, fully private.
 
-A local-only web application and processing pipeline for managing staff profiles and generating high-quality proposal resumes from a central global workbook.
+![License](https://img.shields.io/badge/license-MIT-green) ![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Language](https://img.shields.io/badge/language-Python-yellow) ![GitHub](https://img.shields.io/badge/GitHub-BenWassa/staff--resumes-black?logo=github)
+
+## 📋 Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Requirements](#requirements)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [Architecture](#architecture)
+
+## ℹ️ Project Information
+
+- **Author:** BenWassa
+- **Version:** 1.0.0
+- **License:** MIT
+- **Repository:** [https://github.com/BenWassa/staff-resumes](https://github.com/BenWassa/staff-resumes)
+
+## Features
+
+- 🎯 **Local-only processing** — All data stays on your machine. No cloud uploads, no external dependencies
+- 🖥️ **Web-based UI** — Intuitive admin interface for managing staff profiles and generating resumes
+- 📊 **Excel-driven** — Centralized workbook sync and data-driven resume generation
+- 📝 **Template-based** — Generates professional `.docx` resumes from customizable templates
+- ⚡ **One-click startup** — Windows launcher handles all setup and dependency installation
+- 🔒 **Privacy-first** — No database, no telemetry—complete control over your data
+
+## Installation
+
+For detailed step-by-step setup instructions, see [SETUP-GUIDE.md](SETUP-GUIDE.md).
+
+### Quick Start (Windows)
+
+1. Download the repository:
+   [`https://github.com/BenWassa/staff-resumes/archive/refs/heads/main.zip`](https://github.com/BenWassa/staff-resumes/archive/refs/heads/main.zip)
+2. Extract the ZIP to your desired location (e.g., `C:\Users\YourName\Documents\staff-resumes`)
+3. Double-click `Start-Local.bat` in the extracted folder
+4. Wait while dependencies install (2–3 minutes on first run)
+5. Your browser will automatically open to the application at `http://localhost:5174`
+
+## Usage
+
+### Web Interface
+
+1. Start the application with `Start-Local.bat` or run `npm run dev` from the root folder
+2. Your browser will open to `http://localhost:5174`
+3. On first run, configure your Projects folder in the setup wizard
+4. Use the admin panel to manage staff profiles and sync data
+5. Generate resumes directly from the web UI
+
+### Command Line (Pipeline)
+
+For direct pipeline execution without the web UI:
+
+```bash
+python run_pipeline.py
+```
+
+### Development Commands
+
+```bash
+npm run dev          # Start both API (8012) and UI (5174)
+npm run dev:api      # Start API only (port 8012)
+npm run dev:client   # Start UI only (port 5174)
+npm run build        # Build for production
+```
+
+## Requirements
+
+- **Python 3.8+**
+- **Node.js 18+ (LTS recommended)**
+- **Windows 10+** (launcher scripts require PowerShell)
+
+## Examples
+
+1. Launch the app: `Start-Local.bat`
+2. Configure your Projects folder when prompted
+3. Add or edit staff profiles in the web interface
+4. Review synced pursuit data
+5. Generate `.docx` proposal resumes with a single click
+6. Access generated files in the local output folder
+
+## Contributing
+
+This project is maintained by a single developer. For feature requests, bug reports, or general support, please reach out via Teams. All contributions and feedback are welcome—message directly to discuss any changes or improvements.
 
 ## Project Structure
 
@@ -21,30 +106,6 @@ A local-only web application and processing pipeline for managing staff profiles
 - **Data Pipeline**: Python-driven Excel and Word automation
 - **Storage**: Local JSON files in `%APPDATA%/ResumeGenerator/`
 - **Output**: Generates `.docx` files in a local directory served by the API
-
-## Getting Started
-
-### 1. Simple Start (Windows Launcher)
-From File Explorer, run [Start-Local.bat](Start-Local.bat). This script:
-1. Checks for Python and Node.js.
-2. Sets up a Python virtual environment (`web/venv`) and installs `requirements.txt`.
-3. Sets up npm dependencies in the `web/` folder.
-4. Launches both the API and the UI automatically.
-
-### 2. Manual Development
-If you prefer running components separately:
-
-#### Backend + Frontend (Root)
-```bash
-npm run dev
-```
-Runs the FastAPI backend on `http://localhost:8012` and the Vite frontend on `http://localhost:5174`.
-
-#### Pipeline CLI
-To run the processing pipeline directly without the web UI:
-```bash
-python run_pipeline.py
-```
 
 ## Local State & Configuration
 
