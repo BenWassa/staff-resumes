@@ -1,4 +1,7 @@
 {
+  "apphosting": {
+    "disableAutoInitialize": true
+  },
   "hosting": {
     "public": "web/dist/web",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
