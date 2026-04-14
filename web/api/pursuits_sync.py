@@ -1,4 +1,4 @@
-"""Sync pursuits from the local file system into the local JSON store.
+﻿"""Sync pursuits from the local file system into the local JSON store.
 
 Called once at dev-server startup (non-blocking, background thread).
 The pursuits root is read from LOCAL_PURSUITS_ROOT in the environment,
@@ -30,7 +30,7 @@ def _pursuits_root() -> Path | None:
         p = Path(env_val)
         if p.is_dir():
             return p
-        log.warning("pursuits_sync: LOCAL_PURSUITS_ROOT=%r does not exist â€” skipping", env_val)
+        log.warning("pursuits_sync: LOCAL_PURSUITS_ROOT=%r does not exist - skipping", env_val)
         return None
 
     try:
@@ -55,7 +55,7 @@ def sync_pursuits_from_disk() -> int:
     """Scan the pursuits root and refresh the local pursuit store."""
     root = _pursuits_root()
     if root is None:
-        log.info("pursuits_sync: no pursuits root configured â€” skipping sync")
+        log.info("pursuits_sync: no pursuits root configured - skipping sync")
         return 0
 
     discovered: list[dict] = []
@@ -83,3 +83,4 @@ def sync_pursuits_from_disk() -> int:
     written = replace_pursuits_from_disk(discovered)
     log.info("pursuits_sync: synced %d pursuits from %s", written, root)
     return written
+

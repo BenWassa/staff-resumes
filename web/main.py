@@ -73,14 +73,17 @@ def _startup_health_check() -> None:
     log.info("  pursuits_root_exists: %s", pursuits_root_exists)
 
 
-@app.on_event("startup")
-def on_startup():
-    _startup_health_check()
-
+def _trigger_pursuits_sync_background() -> None:
     def _sync():
         sync_pursuits_from_disk()
 
     threading.Thread(target=_sync, daemon=True).start()
+
+
+@app.on_event("startup")
+def on_startup():
+    _startup_health_check()
+    _trigger_pursuits_sync_background()
 
 
 class PersonSelection(BaseModel):
@@ -208,6 +211,7 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
             counts = event.get("counts", {})
             individual_urls = event.get("individual_urls", {})
             consolidated_url = event.get("consolidated_url")
+            output_dir = event.get("output_dir")
             _store_job(
                 job_id,
                 {
@@ -219,6 +223,7 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
                     "counts": counts,
                     "individual_urls": individual_urls,
                     "consolidated_url": consolidated_url,
+                    "output_dir": output_dir,
                 },
             )
 
@@ -379,6 +384,7 @@ def api_set_config_paths(body: ConfigPathsUpdate):
         if error:
             raise HTTPException(status_code=400, detail=error)
         save_config({"pursuits_root": str(resolved)})
+        _trigger_pursuits_sync_background()
 
     return {"ok": True, **get_config_status()}
 

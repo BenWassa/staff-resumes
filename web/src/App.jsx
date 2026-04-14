@@ -1,15 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import ProfilePage from './pages/ProfilePage';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AdminPage from './pages/AdminPage';
-import SetupPage from './pages/SetupPage';
+import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import SetupPage from './pages/SetupPage';
 import { apiFetch } from './utils/apiFetch';
 
 function RootRedirect() {
-  const { loading } = useAuth();
   const [configStatus, setConfigStatus] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
 
@@ -21,7 +18,7 @@ function RootRedirect() {
       .finally(() => setStatusLoading(false));
   }, []);
 
-  if (loading || statusLoading) {
+  if (statusLoading) {
     return <div className="min-h-screen bg-[var(--bg-main)]" />;
   }
 
@@ -34,58 +31,16 @@ function RootRedirect() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<RootRedirect />} />
-
-          <Route
-            path="/setup"
-            element={
-              <ProtectedRoute>
-                <SetupPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile/:staffId"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/setup" element={<SetupPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/profile" element={<Navigate to="/admin" replace />} />
+        <Route path="/profile/:staffId" element={<ProfilePage />} />
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

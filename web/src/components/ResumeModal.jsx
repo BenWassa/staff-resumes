@@ -223,7 +223,7 @@ export default function ResumeModal({ isOpen, onClose }) {
         }),
       });
     } catch {
-      // Save failure is non-blocking — proceed to generate anyway
+      // Save failure is non-blocking - proceed to generate anyway
     }
 
     try {
@@ -442,6 +442,14 @@ export default function ResumeModal({ isOpen, onClose }) {
                   <p className="mt-2 text-base text-[var(--text-muted)]">
                     Download your files below from this machine.
                   </p>
+                  {completedJob?.output_dir && (
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                      Output folder:{' '}
+                      <code className="rounded bg-[var(--bg-secondary)] px-1">
+                        {completedJob.output_dir}
+                      </code>
+                    </p>
+                  )}
                 </div>
 
                 {/* Download links */}

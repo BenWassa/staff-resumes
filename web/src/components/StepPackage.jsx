@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { FileCode, AlertTriangle, ChevronDown, Search, X } from 'lucide-react';
 import { formatProjectDateRange, formatProjectOptionLabel } from '../utils/projectDates';
 import { slugify } from '../utils/slugify';
@@ -179,7 +179,7 @@ export default function StepPackage({
                 </div>
                 <div className="truncate text-sm text-[var(--text-muted)]">
                   {formatSavedAt(save.saved_at)}
-                  {save.selected_names.length > 0 ? ` · ${teamPreview(save.selected_names)}` : ''}
+                  {save.selected_names.length > 0 ? ` - ${teamPreview(save.selected_names)}` : ''}
                 </div>
                 <a
                   className="absolute right-2 top-2 rounded-[var(--radius-sm)] p-1.5 text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--bg-card)] hover:text-[var(--text-main)] group-hover:opacity-100"
@@ -359,3 +359,4 @@ export default function StepPackage({
     </div>
   );
 }
+
