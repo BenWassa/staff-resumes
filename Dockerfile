@@ -17,6 +17,9 @@ COPY src/ ./src/
 COPY web/ ./web/
 COPY templates/ ./templates/
 
+# Copy production environment configuration
+COPY .env.production .env
+
 # Cloud Run sets PORT env var; default to 8080
 ENV PORT=8080
 
