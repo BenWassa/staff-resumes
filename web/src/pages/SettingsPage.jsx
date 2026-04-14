@@ -86,11 +86,11 @@ export default function SettingsPage() {
             </div>
           </div>
           <button
-            onClick={() => navigate('/admin')}
+            onClick={() => navigate('/home')}
             className="button-secondary"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Admin
+            Back to Home
           </button>
         </div>
       </header>

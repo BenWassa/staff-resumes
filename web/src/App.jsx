@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import AdminPage from './pages/AdminPage';
+import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import SetupPage from './pages/SetupPage';
@@ -26,7 +26,7 @@ function RootRedirect() {
     return <Navigate to="/setup" replace />;
   }
 
-  return <Navigate to="/admin" replace />;
+  return <Navigate to="/home" replace />;
 }
 
 export default function App() {
@@ -36,9 +36,9 @@ export default function App() {
         <Route path="/" element={<RootRedirect />} />
         <Route path="/setup" element={<SetupPage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/profile" element={<Navigate to="/admin" replace />} />
+        <Route path="/profile" element={<Navigate to="/home" replace />} />
         <Route path="/profile/:staffId" element={<ProfilePage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/home" element={<HomePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

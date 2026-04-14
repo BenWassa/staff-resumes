@@ -8,7 +8,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
 
   if (!staffId) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return (
@@ -30,7 +30,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4">
             <CloseButton 
               label="Exit Profile View" 
-              onClick={() => navigate('/admin')} 
+              onClick={() => navigate('/home')} 
             />
           </div>
         </div>

@@ -25,7 +25,7 @@
 ## Features
 
 - 🎯 **Local-only processing** — All data stays on your machine. No cloud uploads, no external dependencies
-- 🖥️ **Web-based UI** — Intuitive admin interface for managing staff profiles and generating resumes
+- 🖥️ **Web-based UI** — Intuitive home dashboard for managing staff profiles and generating resumes
 - 📊 **Excel-driven** — Centralized workbook sync and data-driven resume generation
 - 📝 **Template-based** — Generates professional `.docx` resumes from customizable templates
 - ⚡ **One-click startup** — Windows launcher handles all setup and dependency installation
@@ -51,7 +51,7 @@ For detailed step-by-step setup instructions, see [SETUP-GUIDE.md](SETUP-GUIDE.m
 1. Start the application with `Start-Local.bat`
 2. Your browser will open to `http://localhost:5174`
 3. On first run, configure your Projects folder in the setup wizard
-4. Use the admin panel to manage staff profiles and sync data
+4. Use the home dashboard to manage staff profiles and sync data
 5. Generate resumes directly from the web UI
 
 ## Requirements

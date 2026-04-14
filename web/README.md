@@ -11,7 +11,7 @@ The management interface for the Staff Resumes project. This application allows 
   - `App.jsx`: Main routing and layout.
   - `components/profile/`: Specialized editors for staff bios, education, and project experience.
   - `components/OnboardingScreen.jsx`: Initial configuration of the pursuits folder.
-  - `pages/`: Page-level components for Admin, Profile editing, and Settings.
+  - `pages/`: Page-level components for Home, Profile editing, and Settings.
 
 ### Backend (FastAPI)
 - **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python)

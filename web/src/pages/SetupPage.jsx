@@ -15,7 +15,7 @@ export default function SetupPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.pursuits_root_exists) {
-          navigate('/admin', { replace: true });
+          navigate('/home', { replace: true });
         }
       })
       .catch(() => {});
@@ -44,7 +44,7 @@ export default function SetupPage() {
         throw new Error(errorData.detail || 'Failed to save configuration');
       }
 
-      navigate('/admin', { replace: true });
+      navigate('/home', { replace: true });
     } catch (err) {
       setError(err.message || 'An error occurred while saving configuration.');
     } finally {
