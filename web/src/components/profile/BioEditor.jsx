@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import { db } from '../../firebase';
+import { apiFetch } from '../../utils/apiFetch';
 
 const TITLE_OPTIONS = [
   'Partner',
@@ -18,32 +17,39 @@ export default function BioEditor({ staffId }) {
     summary: '',
   });
   const [loading, setLoading] = useState(true);
-  const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
+  const [saveState, setSaveState] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const summaryRef = useRef(null);
 
   useEffect(() => {
     async function load() {
-      const snap = await getDoc(doc(db, 'staff', staffId));
-      if (snap.exists()) {
-        const d = snap.data();
+      setLoading(true);
+      try {
+        const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || 'Failed to load profile.');
+        }
+
         setFields({
-          first_name: d.first_name ?? '',
-          last_name: d.last_name ?? '',
-          title: d.title ?? '',
-          summary: d.summary ?? '',
+          first_name: data.first_name ?? '',
+          last_name: data.last_name ?? '',
+          title: data.title ?? '',
+          summary: data.summary ?? '',
         });
+      } catch {
+        setErrorMsg('Could not load this profile.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     load();
   }, [staffId]);
 
-  // Auto-grow textarea
   useEffect(() => {
     if (summaryRef.current) {
       summaryRef.current.style.height = 'auto';
-      summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
+      summaryRef.current.style.height = `${summaryRef.current.scrollHeight}px`;
     }
   }, [fields.summary]);
 
@@ -56,27 +62,37 @@ export default function BioEditor({ staffId }) {
     setSaveState('saving');
     setErrorMsg('');
     try {
-      await setDoc(
-        doc(db, 'staff', staffId),
-        {
-          ...fields,
-          display_name: `${fields.first_name} ${fields.last_name}`.trim(),
-          updated_at: new Date(),
-        },
-        { merge: true }
-      );
+      const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          first_name: fields.first_name,
+          last_name: fields.last_name,
+          title: fields.title,
+          summary: fields.summary,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || 'Save failed. Please try again.');
+      }
+      setFields({
+        first_name: data.first_name ?? '',
+        last_name: data.last_name ?? '',
+        title: data.title ?? '',
+        summary: data.summary ?? '',
+      });
       setSaveState('saved');
       setTimeout(() => setSaveState('idle'), 2000);
     } catch (err) {
       setSaveState('error');
-      setErrorMsg('Save failed. Please try again.');
+      setErrorMsg(err.message || 'Save failed. Please try again.');
     }
   }
 
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm py-8">
-        <Loader2 size={16} className="animate-spin" /> Loading…
+        <Loader2 size={16} className="animate-spin" /> Loading...
       </div>
     );
   }
@@ -85,7 +101,6 @@ export default function BioEditor({ staffId }) {
 
   return (
     <form onSubmit={handleSave} className="space-y-5">
-      {/* Name row */}
       <div className="grid grid-cols-2 gap-4">
         <Field label="First name">
           <input
@@ -107,7 +122,6 @@ export default function BioEditor({ staffId }) {
         </Field>
       </div>
 
-      {/* Title */}
       <Field label="Title">
         <select
           value={TITLE_OPTIONS.includes(fields.title) ? fields.title : '__custom__'}
@@ -121,7 +135,7 @@ export default function BioEditor({ staffId }) {
               {t}
             </option>
           ))}
-          <option value="__custom__">Other…</option>
+          <option value="__custom__">Other...</option>
         </select>
         {(isCustomTitle || fields.title === '') && (
           <input
@@ -134,7 +148,6 @@ export default function BioEditor({ staffId }) {
         )}
       </Field>
 
-      {/* Bio / Summary */}
       <Field label="Bio / Summary" hint="This text appears verbatim in the resume template.">
         <textarea
           ref={summaryRef}
@@ -142,18 +155,17 @@ export default function BioEditor({ staffId }) {
           onChange={(e) => set('summary', e.target.value)}
           rows={4}
           className={`${inputCls} resize-none overflow-hidden`}
-          placeholder="Write a 2–3 sentence professional summary…"
+          placeholder="Write a 2-3 sentence professional summary..."
         />
       </Field>
 
-      {/* Save button */}
       <div className="flex items-center gap-3 pt-1">
         <button
           type="submit"
           disabled={saveState === 'saving'}
           className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-[var(--radius)] transition-opacity"
         >
-          {saveState === 'saving' ? 'Saving…' : 'Save bio'}
+          {saveState === 'saving' ? 'Saving...' : 'Save bio'}
         </button>
 
         {saveState === 'saved' && (

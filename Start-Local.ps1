@@ -63,7 +63,7 @@ if (-not (Test-Path $requirementsStamp)) {
 }
 
 if (-not (Test-Path (Join-Path $webDir ".env.local"))) {
-    Write-Host "Warning: web\\.env.local is missing. Frontend Firebase config may be incomplete." -ForegroundColor Yellow
+    Write-Host "Warning: web\\.env.local is missing. Only local defaults will be used." -ForegroundColor Yellow
 }
 
 $env:Path = "$(Join-Path $webDir 'venv\Scripts');$env:Path"

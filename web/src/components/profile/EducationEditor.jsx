@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, writeBatch, doc, orderBy, query } from 'firebase/firestore';
 import { Plus, CheckCircle2, Loader2 } from 'lucide-react';
-import { db } from '../../firebase';
+import { apiFetch } from '../../utils/apiFetch';
 import SortableList from '../SortableList';
 
 const BLANK_EDU = { degree_cert: '', degree_area: '', location: '' };
@@ -14,61 +13,67 @@ export default function EducationEditor({ staffId }) {
 
   useEffect(() => {
     async function load() {
-      const q = query(collection(db, 'staff', staffId, 'education'), orderBy('order'));
-      const snap = await getDocs(q);
-      setEntries(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
+      setLoading(true);
+      try {
+        const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || 'Failed to load education.');
+        }
+        setEntries((data.education ?? []).map((entry, index) => ({ _id: makeId(index), ...entry })));
+      } catch {
+        setErrorMsg('Could not load education entries.');
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [staffId]);
 
   function addEntry() {
-    const id = `edu_${Date.now()}`;
-    setEntries((prev) => [...prev, { id, ...BLANK_EDU }]);
+    setEntries((prev) => [...prev, { _id: makeId(prev.length), ...BLANK_EDU }]);
   }
 
   function updateEntry(id, field, value) {
-    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
+    setEntries((prev) => prev.map((e) => (e._id === id ? { ...e, [field]: value } : e)));
   }
 
-  // SortableList expects { id, label, sublabel }
   const sortableItems = entries.map((e) => ({
-    id: e.id,
-    label: [e.degree_cert, e.degree_area].filter(Boolean).join(' — ') || 'Untitled entry',
+    id: e._id,
+    label: [e.degree_cert, e.degree_area].filter(Boolean).join(' - ') || 'Untitled entry',
     sublabel: e.location,
   }));
 
   function handleReorder(reordered) {
-    const idOrder = reordered.map((item) => item.id);
-    setEntries((prev) => idOrder.map((id) => prev.find((e) => e.id === id)));
+    const next = reordered
+      .map((item) => entries.find((entry) => entry._id === item.id))
+      .filter(Boolean);
+    setEntries(next);
   }
 
   function handleRemove(id) {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
+    setEntries((prev) => prev.filter((entry) => entry._id !== id));
   }
 
   async function handleSave() {
     setSaveState('saving');
     setErrorMsg('');
     try {
-      const batch = writeBatch(db);
-      const colRef = collection(db, 'staff', staffId, 'education');
-
-      // Delete all existing education docs then rewrite
-      const existing = await getDocs(colRef);
-      existing.docs.forEach((d) => batch.delete(d.ref));
-
-      entries.forEach((entry, i) => {
-        const ref = doc(colRef, entry.id);
-        batch.set(ref, {
-          degree_cert: entry.degree_cert,
-          degree_area: entry.degree_area,
-          location: entry.location,
-          order: i + 1,
-        });
+      const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          education: entries.map((entry) => {
+            const rest = { ...entry };
+            delete rest._id;
+            return rest;
+          }),
+        }),
       });
-
-      await batch.commit();
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || 'Save failed. Please try again.');
+      }
+      setEntries((data.education ?? []).map((entry, index) => ({ _id: makeId(index), ...entry })));
       setSaveState('saved');
       setTimeout(() => setSaveState('idle'), 2000);
     } catch {
@@ -80,18 +85,17 @@ export default function EducationEditor({ staffId }) {
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm py-8">
-        <Loader2 size={16} className="animate-spin" /> Loading…
+        <Loader2 size={16} className="animate-spin" /> Loading...
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Inline edit forms */}
       <div className="space-y-3">
         {entries.map((entry) => (
           <div
-            key={entry.id}
+            key={entry._id}
             className="border border-[var(--border)] rounded-[var(--radius-lg)] bg-[var(--bg-card)] p-4"
           >
             <div className="grid grid-cols-3 gap-3">
@@ -99,7 +103,7 @@ export default function EducationEditor({ staffId }) {
                 <input
                   type="text"
                   value={entry.degree_cert}
-                  onChange={(e) => updateEntry(entry.id, 'degree_cert', e.target.value)}
+                  onChange={(e) => updateEntry(entry._id, 'degree_cert', e.target.value)}
                   className={inputCls}
                   placeholder="B.Eng."
                 />
@@ -108,7 +112,7 @@ export default function EducationEditor({ staffId }) {
                 <input
                   type="text"
                   value={entry.degree_area}
-                  onChange={(e) => updateEntry(entry.id, 'degree_area', e.target.value)}
+                  onChange={(e) => updateEntry(entry._id, 'degree_area', e.target.value)}
                   className={inputCls}
                   placeholder="Civil Engineering"
                 />
@@ -117,7 +121,7 @@ export default function EducationEditor({ staffId }) {
                 <input
                   type="text"
                   value={entry.location}
-                  onChange={(e) => updateEntry(entry.id, 'location', e.target.value)}
+                  onChange={(e) => updateEntry(entry._id, 'location', e.target.value)}
                   className={inputCls}
                   placeholder="University of Calgary"
                 />
@@ -131,7 +135,6 @@ export default function EducationEditor({ staffId }) {
         )}
       </div>
 
-      {/* Reorder + remove */}
       {entries.length > 1 && (
         <div>
           <p className="text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider font-medium">
@@ -149,7 +152,6 @@ export default function EducationEditor({ staffId }) {
         <Plus size={15} /> Add education entry
       </button>
 
-      {/* Save all */}
       <div className="flex items-center gap-3 pt-2">
         <button
           type="button"
@@ -157,7 +159,7 @@ export default function EducationEditor({ staffId }) {
           disabled={saveState === 'saving'}
           className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-[var(--radius)] transition-opacity"
         >
-          {saveState === 'saving' ? 'Saving…' : 'Save education'}
+          {saveState === 'saving' ? 'Saving...' : 'Save education'}
         </button>
         {saveState === 'saved' && (
           <span className="flex items-center gap-1.5 text-sm text-green-500">
@@ -183,3 +185,7 @@ function EduField({ label, children }) {
 
 const inputCls =
   'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-[var(--radius)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--blc-red)] transition-colors';
+
+function makeId(index) {
+  return `${crypto.randomUUID()}_${index}`;
+}

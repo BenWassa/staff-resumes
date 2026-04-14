@@ -1,20 +1,12 @@
-import { signOut } from 'firebase/auth';
-import { LogOut } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
 import ProfileEditorTabs from '../components/profile/ProfileEditorTabs';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfilePage() {
-  const { user, role, staffId: myStaffId } = useAuth();
+  const { role, staffId: myStaffId } = useAuth();
   const { staffId: paramStaffId } = useParams();
   const navigate = useNavigate();
   const staffId = paramStaffId ?? myStaffId;
-
-  async function handleSignOut() {
-    await signOut(auth);
-    window.location.href = '/login';
-  }
 
   if (!staffId && role === 'admin') {
     navigate('/admin', { replace: true });
@@ -26,22 +18,11 @@ export default function ProfilePage() {
       <div className="app-shell flex items-center justify-center px-4">
         <div className="panel-surface max-w-md space-y-3 px-8 py-8 text-center">
           <p className="text-sm" style={{ color: 'var(--text-main)' }}>
-            Your account isn&apos;t linked to a staff profile yet.
+            This profile is not linked to a staff record yet.
           </p>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Signed in as <strong>{user?.email}</strong>
+            Open a specific staff member from the gallery to edit their profile.
           </p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Contact your admin to get linked up.
-          </p>
-          <button
-            onClick={handleSignOut}
-            className="mt-2 flex items-center gap-1.5 text-xs mx-auto transition-colors"
-            style={{ color: 'var(--accent-main)' }}
-          >
-            <LogOut size={13} />
-            Sign out
-          </button>
         </div>
       </div>
     );
@@ -53,23 +34,14 @@ export default function ProfilePage() {
         <span className="app-shell-brand font-sans text-lg">
           Blackline <span className="text-[var(--text-muted)] font-normal">Staff Resumes</span>
         </span>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-[var(--text-muted)]">{user?.email}</span>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            <LogOut size={14} />
-            Sign out
-          </button>
-        </div>
+        <span className="text-xs text-[var(--text-muted)]">Local session</span>
       </div>
 
       <div className="mx-auto max-w-4xl px-6 py-8">
         <ProfileEditorTabs
           staffId={staffId}
           title="My Profile"
-          description="Keep your bio and projects up to date — this is what gets pulled into proposal resumes."
+          description="Keep your bio and projects up to date â€” this is what gets pulled into proposal resumes."
         />
       </div>
     </div>

@@ -1,24 +1,13 @@
 # Staff Resumes
 
-A local-first web application for managing and generating staff resumes.
+A local-only web application for managing staff profiles and generating proposal resumes.
 
 ## Architecture
 
 - **Frontend**: React + Vite
 - **Backend**: Python FastAPI
-- **Database**: Firestore
-- **Storage**: Firebase Storage
-- **Auth**: Firebase Authentication
-
-## Hosted Path Status
-
-The Firebase App Hosting and Cloud Run deployment path was attempted and intentionally abandoned.
-
-Reason:
-- Firebase App Hosting is Node.js-first and was not a good fit for this Python FastAPI backend.
-- Keeping the app local is simpler, more reliable, and avoids deployment and runtime mismatch issues.
-
-This repository is now intended to be run locally from the checked-out source.
+- **Storage**: Local JSON files in the machine-specific app data folder
+- **Downloads**: Local output folder served by the API
 
 ## Local Development
 
@@ -28,8 +17,7 @@ From File Explorer, run [Start-Local.bat](/c:/Users/ben.haddon/Documents/staff-r
 Prerequisites:
 - Node.js and npm installed
 - Python installed
-- `web\.env.local` filled in with Firebase web config values
-- Optional local environment overrides only if you need custom backend paths or local Firebase Admin credentials
+- The local pursuits folder configured in the Setup Wizard on first run
 
 On first run, the launcher will create `web\venv`, install Python dependencies, and install npm packages under `web`.
 
@@ -45,17 +33,18 @@ npm --prefix web run dev
 ```
 Runs backend on `http://localhost:8002` and frontend on `http://localhost:5174`
 
-## Environment Variables
+## Local State
 
-### Frontend (`.env.local`)
-- `VITE_FIREBASE_*` — Firebase config (public, baked into build)
+The app stores its data under `%APPDATA%/ResumeGenerator/`:
 
-### Backend (`.env`)
-- Optional only
-- Use this if you need custom runtime paths or `GOOGLE_APPLICATION_CREDENTIALS` for local Firebase Admin access
-- The app has local defaults when no backend `.env` is present
+- `config.json` for the configured pursuits folder
+- `data/staff.json` for local profile overrides
+- `data/pursuits.json` for pursuits
+- `data/sessions.json` for saved resume sessions
+- `outputs/<job-id>/` for generated documents
 
 ## Notes
 
-- Firebase is still used by the application itself for auth, Firestore, and storage.
-- What was removed is the Firebase Hosting/App Hosting and Cloud Run deployment work, checked-in service-account material, and Firebase CLI config artifacts, not the Firebase-backed app behavior.
+- There is no login screen or cloud backend.
+- Staff profiles are seeded from the workbook and then overridden locally when you edit them.
+- Resume downloads are served directly from the local API as files on disk.

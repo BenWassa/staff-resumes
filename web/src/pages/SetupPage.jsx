@@ -187,14 +187,13 @@ export default function SetupPage() {
                 ref={fileInputRef}
                 type="file"
                 webkitdirectory=""
-                mozbrowserdir=""
                 onChange={handleDirectorySelect}
                 style={{ display: 'none' }}
                 disabled={validating}
               />
 
               <p className="text-xs text-[var(--text-muted)] text-center">
-                We'll only access the folder structure and won't store file contents.
+                We&apos;ll only access the folder structure and won&apos;t store file contents.
               </p>
             </div>
           </div>

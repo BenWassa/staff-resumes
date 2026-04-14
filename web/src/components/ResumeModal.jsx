@@ -440,7 +440,7 @@ export default function ResumeModal({ isOpen, onClose }) {
                     Resumes Generated Successfully
                   </h3>
                   <p className="mt-2 text-base text-[var(--text-muted)]">
-                    Download your files below. Links expire in 1 hour.
+                    Download your files below from this machine.
                   </p>
                 </div>
 

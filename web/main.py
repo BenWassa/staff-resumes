@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import threading
@@ -12,29 +13,33 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-import logging
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from web.api.firebase_admin_init import initialize
-from web.api.auth import require_admin, verify_token
-from web.api.firestore_store import get_person_data, list_people
+from web.api.config_store import get_data_dir, get_config_status, save_config, validate_pursuits_root
+from web.api.local_store import (
+    get_person_data,
+    get_session,
+    list_people,
+    list_pursuits,
+    list_sessions,
+    save_session,
+    upsert_person_data,
+    upsert_pursuit,
+)
+from web.api.pursuits_sync import sync_pursuits_from_disk
 from web.api.runner import generate
-from web.api.config_store import get_config_status, validate_pursuits_root, save_config
 
 log = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="Staff Resumes API",
-    version="0.1.0"
-)
+app = FastAPI(title="Staff Resumes API", version="0.1.0")
 JOB_LOCK = threading.Lock()
 JOBS: dict[str, dict] = {}
 
-# ── CORS ───────────────────────────────────────────────────────────────────────
 
 _ALLOWED_ORIGINS_ENV = os.environ.get("ALLOWED_ORIGINS", "")
 _DEFAULT_DEV_ORIGINS = [
@@ -58,11 +63,7 @@ app.add_middleware(
 )
 
 
-# ── App startup ─────────────────────────────────────────────────────────────────
-
-
 def _startup_health_check() -> None:
-    """Log the status of critical paths at startup."""
     config_status = get_config_status()
     pursuits_root = config_status.get("pursuits_root")
     pursuits_root_exists = config_status.get("pursuits_root_exists")
@@ -70,24 +71,16 @@ def _startup_health_check() -> None:
     log.info("Startup path check:")
     log.info("  pursuits_root: %s", pursuits_root or "(not configured)")
     log.info("  pursuits_root_exists: %s", pursuits_root_exists)
-    log.info("  Firebase project: %s", os.environ.get("FIREBASE_PROJECT_ID") or "(not set)")
 
 
 @app.on_event("startup")
 def on_startup():
-    initialize()
     _startup_health_check()
 
-    # Sync pursuits from the local file system in the background so startup
-    # is never blocked by a slow or unavailable OneDrive path.
     def _sync():
-        from web.api.pursuits_sync import sync_pursuits_from_disk
         sync_pursuits_from_disk()
 
     threading.Thread(target=_sync, daemon=True).start()
-
-
-# ── Schemas ────────────────────────────────────────────────────────────────────
 
 
 class PersonSelection(BaseModel):
@@ -125,7 +118,18 @@ class SessionPayload(BaseModel):
     include_end_page: bool = False
 
 
-# ── Job helpers ────────────────────────────────────────────────────────────────
+class PersonUpdate(BaseModel):
+    display_name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    title: str | None = None
+    summary: str | None = None
+    education: list[dict] | None = None
+    projects: list[dict] | None = None
+
+
+class ConfigPathsUpdate(BaseModel):
+    pursuits_root: str | None = None
 
 
 def _job_percent(completed_steps: int, total_steps: int) -> int:
@@ -240,11 +244,8 @@ def _run_generation_job(job_id: str, body: GenerateRequest) -> None:
         )
 
 
-# ── People endpoints ───────────────────────────────────────────────────────────
-
-
 @app.get("/api/people")
-def api_list_people(token: dict = Depends(verify_token)):
+def api_list_people():
     try:
         return list_people()
     except Exception as exc:
@@ -252,20 +253,29 @@ def api_list_people(token: dict = Depends(verify_token)):
 
 
 @app.get("/api/people/{name}/data")
-def api_person_data(name: str, token: dict = Depends(verify_token)):
+def api_person_data(name: str):
     try:
         return get_person_data(name)
     except Exception as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-# ── Generation endpoints ───────────────────────────────────────────────────────
+@app.put("/api/people/{name}/data")
+def api_update_person_data(name: str, body: PersonUpdate):
+    try:
+        payload = body.model_dump(exclude_none=True)
+        return upsert_person_data(name, payload)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/generate")
+def api_generate_placeholder():
+    raise HTTPException(status_code=405, detail="Use POST /api/generate.")
 
 
 @app.post("/api/generate")
-def api_generate(
-    body: GenerateRequest, token: dict = Depends(verify_token)
-) -> GenerateStartResponse:
+def api_generate(body: GenerateRequest) -> GenerateStartResponse:
     job_id = uuid.uuid4().hex
     total_steps = _expected_total_steps(body)
     _store_job(
@@ -290,7 +300,7 @@ def api_generate(
 
 
 @app.get("/api/generate/{job_id}")
-def api_generate_status(job_id: str, token: dict = Depends(verify_token)):
+def api_generate_status(job_id: str):
     with JOB_LOCK:
         job = JOBS.get(job_id)
     if not job:
@@ -298,122 +308,72 @@ def api_generate_status(job_id: str, token: dict = Depends(verify_token)):
     return job
 
 
-# ── Pursuits endpoints ─────────────────────────────────────────────────────────
+@app.get("/api/downloads/{job_id}/{kind}/{filename}")
+def api_download(job_id: str, kind: str, filename: str):
+    base = get_data_dir().parent / "outputs" / job_id
+    resolved_base = base.resolve()
+    target = (resolved_base / kind / filename).resolve()
+
+    try:
+        target.relative_to(resolved_base)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid download path.") from exc
+
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    return FileResponse(target, filename=target.name)
 
 
 @app.get("/api/pursuits")
-def api_list_pursuits(token: dict = Depends(verify_token)):
-    """List all pursuits from Firestore."""
-    from firebase_admin import firestore
-
-    db = firestore.client()
-    docs = db.collection("pursuits").order_by("display_name").stream()
-    return [{"id": d.id, **d.to_dict()} for d in docs]
+def api_list_pursuits():
+    return list_pursuits()
 
 
 @app.post("/api/pursuits")
-def api_create_pursuit(body: PursuitCreate, token: dict = Depends(require_admin)):
-    """Admin: create a new pursuit entry."""
-    from firebase_admin import firestore
+def api_create_pursuit(body: PursuitCreate):
     import re
 
-    db = firestore.client()
     pursuit_id = (
         re.sub(r"[^a-z0-9]+", "-", body.display_name.lower()).strip("-")
         or uuid.uuid4().hex
     )
-    ref = db.collection("pursuits").document(pursuit_id)
-    ref.set(
+    return upsert_pursuit(
+        pursuit_id,
         {
             "display_name": body.display_name,
             "client": body.client,
             "engagement_number": body.engagement_number,
-            "created_at": firestore.SERVER_TIMESTAMP,
-        }
+            "created_at": "local",
+        },
     )
-    return {"id": pursuit_id, **body.model_dump()}
-
-
-# ── Sessions endpoints ─────────────────────────────────────────────────────────
 
 
 @app.get("/api/sessions")
-def api_list_sessions(token: dict = Depends(verify_token)):
-    """List saved sessions — admins see all, members see their own."""
-    from firebase_admin import firestore
-
-    db = firestore.client()
-    uid = token["uid"]
-
-    # Check if admin
-    user_doc = db.collection("users").document(uid).get()
-    is_admin = user_doc.exists and user_doc.to_dict().get("role") == "admin"
-
-    if is_admin:
-        docs = (
-            db.collection("sessions")
-            .order_by("saved_at", direction=firestore.Query.DESCENDING)
-            .limit(50)
-            .stream()
-        )
-    else:
-        docs = (
-            db.collection("sessions")
-            .where(filter=firestore.FieldFilter("saved_by", "==", uid))
-            .order_by("saved_at", direction=firestore.Query.DESCENDING)
-            .limit(20)
-            .stream()
-        )
-
-    return [{"id": d.id, **d.to_dict()} for d in docs]
+def api_list_sessions():
+    return list_sessions()
 
 
 @app.get("/api/sessions/{session_id}")
-def api_get_session(session_id: str, token: dict = Depends(verify_token)):
-    from firebase_admin import firestore
-
-    db = firestore.client()
-    doc = db.collection("sessions").document(session_id).get()
-    if not doc.exists:
+def api_get_session(session_id: str):
+    session = get_session(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
-    return {"id": doc.id, **doc.to_dict()}
+    return session
 
 
 @app.post("/api/sessions/{session_id}")
-def api_save_session(
-    session_id: str, body: SessionPayload, token: dict = Depends(verify_token)
-):
-    from firebase_admin import firestore
-    import datetime
+def api_save_session(session_id: str, body: SessionPayload):
+    return save_session(session_id, body.model_dump())
 
-    db = firestore.client()
-    db.collection("sessions").document(session_id).set(
-        {
-            **body.model_dump(),
-            "saved_by": token["uid"],
-            "saved_at": datetime.datetime.utcnow().isoformat(),
-        }
-    )
-    return {"ok": True}
-
-
-# ── Config endpoints ──────────────────────────────────────────────────────────
 
 @app.get("/api/config/paths")
-def api_get_config_paths(token: dict = Depends(verify_token)):
-    """Return current paths configuration and their status."""
+def api_get_config_paths():
     return get_config_status()
 
 
-class ConfigPathsUpdate(BaseModel):
-    pursuits_root: str | None = None
-
-
 @app.post("/api/config/paths")
-def api_set_config_paths(
-    body: ConfigPathsUpdate, token: dict = Depends(require_admin)
-):
-    """Admin: update and validate configuration paths."""
+def api_set_config_paths(body: ConfigPathsUpdate):
     if body.pursuits_root:
         resolved, error = validate_pursuits_root(body.pursuits_root)
         if error:
@@ -424,48 +384,5 @@ def api_set_config_paths(
 
 
 @app.get("/api/health")
-def api_health(token: dict = Depends(verify_token)):
-    """Return startup health status of critical paths."""
+def api_health():
     return get_config_status()
-
-
-# ── Admin user management endpoints ───────────────────────────────────────────
-
-
-class UserUpdate(BaseModel):
-    role: str | None = None
-    staff_id: str | None = None
-
-
-@app.get("/api/admin/users")
-def api_list_users(token: dict = Depends(require_admin)):
-    """Admin: list all registered users."""
-    from firebase_admin import firestore
-
-    db = firestore.client()
-    docs = db.collection("users").stream()
-    return [{"uid": d.id, **d.to_dict()} for d in docs]
-
-
-@app.patch("/api/admin/users/{uid}")
-def api_update_user(uid: str, body: UserUpdate, token: dict = Depends(require_admin)):
-    """Admin: update a user's role and/or staff_id link."""
-    from firebase_admin import firestore
-
-    db = firestore.client()
-    ref = db.collection("users").document(uid)
-    if not ref.get().exists:
-        raise HTTPException(status_code=404, detail="User not found.")
-
-    updates: dict = {}
-    if body.role is not None:
-        if body.role not in ("admin", "staff"):
-            raise HTTPException(status_code=400, detail="role must be 'admin' or 'staff'.")
-        updates["role"] = body.role
-    if body.staff_id is not None:
-        updates["staff_id"] = body.staff_id or None
-
-    if updates:
-        ref.update(updates)
-
-    return {"ok": True, **updates}

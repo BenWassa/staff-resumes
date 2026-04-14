@@ -1,46 +1,28 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { createContext, useContext } from 'react';
 
 const AuthContext = createContext(null);
 
+const LOCAL_USER = {
+  email: 'local@machine',
+  displayName: 'Local User',
+};
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [userDoc, setUserDoc] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const value = {
+    user: LOCAL_USER,
+    userDoc: {
+      role: 'admin',
+      staff_id: null,
+    },
+    role: 'admin',
+    staffId: null,
+    loading: false,
+  };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        // Load the /users/{uid} doc to get role + staff_id
-        try {
-          const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-          setUserDoc(snap.exists() ? snap.data() : null);
-        } catch {
-          setUserDoc(null);
-        }
-      } else {
-        setUser(null);
-        setUserDoc(null);
-      }
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const role = userDoc?.role ?? null;
-  const staffId = userDoc?.staff_id ?? null;
-
-  return (
-    <AuthContext.Provider value={{ user, userDoc, role, staffId, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used inside AuthProvider');

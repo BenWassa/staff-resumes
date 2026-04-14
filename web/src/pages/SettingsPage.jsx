@@ -251,7 +251,6 @@ export default function SettingsPage() {
                 ref={fileInputRef}
                 type="file"
                 webkitdirectory=""
-                mozbrowserdir=""
                 onChange={handleDirectorySelect}
                 style={{ display: 'none' }}
                 disabled={validating || loading}

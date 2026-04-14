@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, setDoc, deleteDoc, doc, orderBy, query } from 'firebase/firestore';
 import { ChevronDown, ChevronUp, Plus, CheckCircle2, Loader2 } from 'lucide-react';
-import { db } from '../../firebase';
+import { apiFetch } from '../../utils/apiFetch';
 
 const BLANK_PROJECT = {
   key: '',
@@ -18,19 +17,27 @@ export default function ProjectsEditor({ staffId }) {
   const [expandedKey, setExpandedKey] = useState(null);
   const [savingKey, setSavingKey] = useState(null);
   const [savedKey, setSavedKey] = useState(null);
-  const [deletingKey, setDeletingKey] = useState(null); // key pending confirm
+  const [deletingKey, setDeletingKey] = useState(null);
   const [adding, setAdding] = useState(false);
   const [newProject, setNewProject] = useState(BLANK_PROJECT);
   const [addSaving, setAddSaving] = useState(false);
-  const [errors, setErrors] = useState({}); // key → message
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     async function load() {
-      const q = query(collection(db, 'staff', staffId, 'projects'), orderBy('order'));
-      const snap = await getDocs(q);
-      const loaded = snap.docs.map((d, i) => ({ ...d.data(), _order: i }));
-      setProjects(loaded);
-      setLoading(false);
+      setLoading(true);
+      try {
+        const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || 'Failed to load projects.');
+        }
+        setProjects(data.projects ?? []);
+      } catch {
+        setErrors({ load: 'Could not load projects.' });
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [staffId]);
@@ -39,16 +46,25 @@ export default function ProjectsEditor({ staffId }) {
     setProjects((prev) => prev.map((p) => (p.key === key ? { ...p, [field]: value } : p)));
   }
 
+  async function saveProjects(nextProjects) {
+    const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`, {
+      method: 'PUT',
+      body: JSON.stringify({ projects: nextProjects }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || 'Save failed. Try again.');
+    }
+    return data.projects ?? [];
+  }
+
   async function saveProject(project) {
     setSavingKey(project.key);
     setErrors((e) => ({ ...e, [project.key]: null }));
     try {
-      const order = projects.findIndex((p) => p.key === project.key) + 1;
-      await setDoc(doc(db, 'staff', staffId, 'projects', project.key), {
-        ...project,
-        order,
-        updated_at: new Date(),
-      });
+      const nextProjects = projects.map((p) => (p.key === project.key ? project : p));
+      const savedProjects = await saveProjects(nextProjects);
+      setProjects(savedProjects);
       setSavedKey(project.key);
       setTimeout(() => setSavedKey(null), 2000);
     } catch {
@@ -60,8 +76,9 @@ export default function ProjectsEditor({ staffId }) {
 
   async function confirmDelete(key) {
     try {
-      await deleteDoc(doc(db, 'staff', staffId, 'projects', key));
-      setProjects((prev) => prev.filter((p) => p.key !== key));
+      const nextProjects = projects.filter((p) => p.key !== key);
+      const savedProjects = await saveProjects(nextProjects);
+      setProjects(savedProjects);
     } catch {
       setErrors((e) => ({ ...e, [key]: 'Delete failed. Try again.' }));
     } finally {
@@ -73,10 +90,10 @@ export default function ProjectsEditor({ staffId }) {
     if (!newProject.key.trim()) return;
     setAddSaving(true);
     try {
-      const order = projects.length + 1;
-      const proj = { ...newProject, order, date_range: '', updated_at: new Date() };
-      await setDoc(doc(db, 'staff', staffId, 'projects', newProject.key), proj);
-      setProjects((prev) => [...prev, proj]);
+      const proj = { ...newProject };
+      const nextProjects = [...projects, proj];
+      const savedProjects = await saveProjects(nextProjects);
+      setProjects(savedProjects);
       setNewProject(BLANK_PROJECT);
       setAdding(false);
       setExpandedKey(newProject.key);
@@ -90,7 +107,7 @@ export default function ProjectsEditor({ staffId }) {
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm py-8">
-        <Loader2 size={16} className="animate-spin" /> Loading…
+        <Loader2 size={16} className="animate-spin" /> Loading...
       </div>
     );
   }
@@ -115,7 +132,6 @@ export default function ProjectsEditor({ staffId }) {
             key={project.key}
             className="border border-[var(--border)] rounded-[var(--radius-lg)] bg-[var(--bg-card)] overflow-hidden"
           >
-            {/* Row header */}
             <button
               type="button"
               onClick={() => setExpandedKey(isOpen ? null : project.key)}
@@ -140,7 +156,6 @@ export default function ProjectsEditor({ staffId }) {
               )}
             </button>
 
-            {/* Expanded form */}
             {isOpen && (
               <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)]">
                 <div className="pt-3 grid grid-cols-2 gap-3">
@@ -213,7 +228,7 @@ export default function ProjectsEditor({ staffId }) {
                     disabled={isSaving}
                     className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-4 py-1.5 rounded-[var(--radius)] transition-opacity"
                   >
-                    {isSaving ? 'Saving…' : 'Save project'}
+                    {isSaving ? 'Saving...' : 'Save project'}
                   </button>
 
                   {isSaved && (
@@ -258,7 +273,6 @@ export default function ProjectsEditor({ staffId }) {
         );
       })}
 
-      {/* Add new project */}
       {adding ? (
         <div className="border border-[var(--border)] rounded-[var(--radius-lg)] bg-[var(--bg-card)] p-4 space-y-3">
           <p className="text-sm font-medium text-[var(--text-primary)]">New project</p>
@@ -300,7 +314,7 @@ export default function ProjectsEditor({ staffId }) {
               disabled={!newProject.key.trim() || addSaving}
               className="bg-[var(--blc-red)] hover:opacity-90 disabled:opacity-50 text-white text-sm font-medium px-4 py-1.5 rounded-[var(--radius)] transition-opacity"
             >
-              {addSaving ? 'Adding…' : 'Add project'}
+              {addSaving ? 'Adding...' : 'Add project'}
             </button>
             <button
               type="button"
@@ -318,7 +332,7 @@ export default function ProjectsEditor({ staffId }) {
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors py-2"
+          className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors py-1"
         >
           <Plus size={15} /> Add project
         </button>
@@ -333,7 +347,7 @@ function ProjectField({ label, hint, children }) {
       <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
         {label}
       </label>
-      {hint && <p className="text-xs text-[var(--text-muted)]">{hint}</p>}
+      {hint && <p className="text-xs text-[var(--text-muted)] mb-1">{hint}</p>}
       {children}
     </div>
   );

@@ -25,6 +25,16 @@ def _config_dir() -> Path:
     return Path(app_data) / _APP_NAME
 
 
+def get_app_data_dir() -> Path:
+    """Return the per-machine application data directory."""
+    return _config_dir()
+
+
+def get_data_dir() -> Path:
+    """Return the directory used for local JSON app state."""
+    return _config_dir() / "data"
+
+
 def _config_path() -> Path:
     return _config_dir() / _CONFIG_FILE
 

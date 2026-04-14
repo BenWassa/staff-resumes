@@ -1,43 +1,44 @@
-import { signOut } from 'firebase/auth';
-import { LogOut, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ResumeModal from '../components/ResumeModal';
 import StaffGalleryPanel from '../components/StaffGalleryPanel';
-import UserManagementPanel from '../components/UserManagementPanel';
-import { useAuth } from '../contexts/AuthContext';
-import { auth } from '../firebase';
 import { apiFetch } from '../utils/apiFetch';
 
-const TABS = ['resumes', 'profiles', 'users'];
+const TABS = ['resumes', 'profiles'];
 const TAB_LABELS = {
   resumes: 'Generate Resumes',
   profiles: 'Staff Profiles',
-  users: 'Manage Users',
 };
 
 export default function AdminPage() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState('profiles');
   const [allStaff, setAllStaff] = useState([]);
   const [showResumeModal, setShowResumeModal] = useState(false);
 
   useEffect(() => {
+    if (tab !== 'profiles') return;
     apiFetch('/api/people')
       .then((r) => r.json())
       .then((data) => setAllStaff(data))
       .catch(() => {});
-  }, []);
+  }, [tab]);
+
+  useEffect(() => {
+    apiFetch('/api/config/paths')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.pursuits_root_exists) {
+          navigate('/setup', { replace: true });
+        }
+      })
+      .catch(() => {});
+  }, [navigate]);
 
   useEffect(() => {
     setShowResumeModal(tab === 'resumes');
   }, [tab]);
-
-  async function handleSignOut() {
-    await signOut(auth);
-    window.location.href = '/login';
-  }
 
   return (
     <div className="app-shell">
@@ -46,20 +47,13 @@ export default function AdminPage() {
           Blackline <span className="text-[var(--text-muted)] font-normal">Staff Resumes</span>
         </span>
         <div className="flex items-center gap-4">
-          <span className="text-xs text-[var(--text-muted)]">{user?.email}</span>
+          <span className="text-xs text-[var(--text-muted)]">Local session</span>
           <button
             onClick={() => navigate('/settings')}
             className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             title="Settings"
           >
             <Settings size={14} />
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            <LogOut size={14} />
-            Sign out
           </button>
         </div>
       </div>
@@ -79,25 +73,6 @@ export default function AdminPage() {
       </div>
 
       {tab === 'profiles' && <StaffGalleryPanel allStaff={allStaff} />}
-
-      {tab === 'users' && (
-        <div className="mx-auto max-w-4xl px-6 py-8">
-          <div className="panel-surface overflow-hidden">
-            <div className="panel-header">
-              <div className="section-intro mb-0">
-                <h1 className="section-title">Manage Users</h1>
-                <p className="section-description">
-                  Link each user to their staff profile and set their role. Staff members can only
-                  edit their own profile; admins can generate resumes and manage users.
-                </p>
-              </div>
-            </div>
-            <div className="px-6 py-6">
-              <UserManagementPanel allStaff={allStaff} />
-            </div>
-          </div>
-        </div>
-      )}
 
       {showResumeModal && (
         <ResumeModal
