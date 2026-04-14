@@ -14,7 +14,7 @@ Usage:
     python scripts/seed_firestore_from_csv.py --pursuits
 
 Environment:
-    Set GOOGLE_APPLICATION_CREDENTIALS to your service-account.json path,
+    Set GOOGLE_APPLICATION_CREDENTIALS to your local service account JSON path,
     or ensure Application Default Credentials are configured.
 
 CSV directory defaults to data/CSVs/ relative to the repo root.

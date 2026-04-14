@@ -29,6 +29,7 @@ Prerequisites:
 - Node.js and npm installed
 - Python installed
 - `web\.env.local` filled in with Firebase web config values
+- Optional local environment overrides only if you need custom backend paths or local Firebase Admin credentials
 
 On first run, the launcher will create `web\venv`, install Python dependencies, and install npm packages under `web`.
 
@@ -50,10 +51,11 @@ Runs backend on `http://localhost:8002` and frontend on `http://localhost:5174`
 - `VITE_FIREBASE_*` — Firebase config (public, baked into build)
 
 ### Backend (`.env`)
-- Local runtime paths and generation settings
-- Google credentials if needed for local Firebase Admin access
+- Optional only
+- Use this if you need custom runtime paths or `GOOGLE_APPLICATION_CREDENTIALS` for local Firebase Admin access
+- The app has local defaults when no backend `.env` is present
 
 ## Notes
 
 - Firebase is still used by the application itself for auth, Firestore, and storage.
-- What was removed is the Firebase Hosting/App Hosting and Cloud Run deployment work, not the Firebase-backed app behavior.
+- What was removed is the Firebase Hosting/App Hosting and Cloud Run deployment work, checked-in service-account material, and Firebase CLI config artifacts, not the Firebase-backed app behavior.

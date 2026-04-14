@@ -1,7 +1,7 @@
 /**
  * Authorised email addresses for this application.
  * Used for client-side pre-checks on the login page.
- * The canonical enforcement lives in firestore.rules — keep both in sync.
+ * The canonical enforcement should live in your Firebase project configuration.
  */
 export const ALLOWED_EMAILS = new Set([
   'graham.pressey@blacklineconsulting.ca',
