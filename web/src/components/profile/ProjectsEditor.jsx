@@ -165,12 +165,12 @@ export default function ProjectsEditor({ staffId }) {
             >
               <div className="min-w-0">
                 <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                  {project.title || (
-                    <span className="italic text-[var(--text-muted)]">Untitled project</span>
+                  {project.client || (
+                    <span className="italic text-[var(--text-muted)]">Client not set</span>
                   )}
                 </p>
                 <p className="text-xs text-[var(--text-muted)] truncate">
-                  {project.client || 'Client not set'}
+                  {project.title || 'Untitled project'}
                 </p>
               </div>
               {isOpen ? (

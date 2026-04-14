@@ -432,7 +432,7 @@ function ProjectSelectionModal({
                 >
                   <div className="min-w-0">
                     <div className="truncate text-base font-medium text-[var(--text-main)]">
-                      {project.client || 'Unknown client'}
+                      {project.client || 'Client not set'}
                     </div>
                   </div>
                   <div className="min-w-0">
@@ -499,8 +499,8 @@ function PersonPanel({ data, selection, onChangeSelection }) {
     const project = availableProjects.find((item) => item.key === key);
     return {
       id: key,
-      label: project?.title || 'Untitled project',
-      sublabel: project?.client ?? '',
+      label: project?.client || 'Client not set',
+      sublabel: project?.title || 'Untitled project',
     };
   });
 
