@@ -1,19 +1,25 @@
 import { signOut } from 'firebase/auth';
 import { LogOut } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { auth } from '../firebase';
-import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from 'react';
 import ResumeModal from '../components/ResumeModal';
+import StaffGalleryPanel from '../components/StaffGalleryPanel';
 import UserManagementPanel from '../components/UserManagementPanel';
+import { useAuth } from '../contexts/AuthContext';
+import { auth } from '../firebase';
 import { apiFetch } from '../utils/apiFetch';
 
-const TABS = ['resumes', 'users'];
-const TAB_LABELS = { resumes: 'Generate Resumes', users: 'Manage Users' };
+const TABS = ['resumes', 'profiles', 'users'];
+const TAB_LABELS = {
+  resumes: 'Generate Resumes',
+  profiles: 'Staff Profiles',
+  users: 'Manage Users',
+};
 
 export default function AdminPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState('resumes');
+  const [tab, setTab] = useState('profiles');
   const [allStaff, setAllStaff] = useState([]);
+  const [showResumeModal, setShowResumeModal] = useState(false);
 
   useEffect(() => {
     apiFetch('/api/people')
@@ -22,6 +28,10 @@ export default function AdminPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    setShowResumeModal(tab === 'resumes');
+  }, [tab]);
+
   async function handleSignOut() {
     await signOut(auth);
     window.location.href = '/login';
@@ -29,7 +39,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-main)]">
-      {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)]">
         <span className="text-[var(--blc-red)] font-bold tracking-tight font-sans">
           Blackline <span className="text-[var(--text-muted)] font-normal">Staff Resumes</span>
@@ -46,7 +55,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Tab bar */}
       <div className="flex gap-1 px-6 border-b border-[var(--border)]">
         {TABS.map((t) => (
           <button
@@ -57,14 +65,14 @@ export default function AdminPage() {
                 ? 'border-[var(--blc-red)] text-[var(--text-primary)]'
                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
+            type="button"
           >
             {TAB_LABELS[t]}
           </button>
         ))}
       </div>
 
-      {/* Tab content */}
-      {tab === 'resumes' && <ResumeModal isOpen={true} onClose={() => {}} />}
+      {tab === 'profiles' && <StaffGalleryPanel allStaff={allStaff} />}
 
       {tab === 'users' && (
         <div className="max-w-3xl mx-auto px-6 py-8">
@@ -75,6 +83,16 @@ export default function AdminPage() {
           </p>
           <UserManagementPanel allStaff={allStaff} />
         </div>
+      )}
+
+      {showResumeModal && (
+        <ResumeModal
+          isOpen={showResumeModal}
+          onClose={() => {
+            setShowResumeModal(false);
+            setTab('profiles');
+          }}
+        />
       )}
     </div>
   );
