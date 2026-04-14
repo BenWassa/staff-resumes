@@ -251,13 +251,15 @@ export default function ProjectsEditor({ staffId }) {
                   <div className="ml-auto">
                     {isDeletePending ? (
                       <span className="flex items-center gap-3 text-sm">
-                        <span className="text-[var(--text-muted)] font-medium">Delete project?</span>
+                        <span className="max-w-[220px] text-[var(--text-muted)] font-medium">
+                          Delete project? This cannot be undone.
+                        </span>
                         <button
                           type="button"
                           onClick={() => confirmDelete(project.key)}
                           className="text-[var(--accent-main)] hover:underline font-bold"
                         >
-                          Confirm
+                          Delete
                         </button>
                         <button
                           type="button"

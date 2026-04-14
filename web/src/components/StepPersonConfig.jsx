@@ -585,7 +585,13 @@ function PersonPanel({ data, selection, onChangeSelection }) {
           </button>
         </div>
 
-        <SortableList items={sortedItems} onReorder={reorderProjects} onRemove={removeProject} />
+        <SortableList
+          items={sortedItems}
+          onReorder={reorderProjects}
+          onRemove={removeProject}
+          removePrompt="Remove project from selection?"
+          removeWarning="This only removes it from the current resume selection."
+        />
       </div>
 
       {allEducation.length > 0 ? (

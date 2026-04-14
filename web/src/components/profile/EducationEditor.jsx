@@ -156,7 +156,13 @@ export default function EducationEditor({ staffId }) {
           <p className="eyebrow-label mb-4">
             Drag to reorder
           </p>
-          <SortableList items={sortableItems} onReorder={handleReorder} onRemove={handleRemove} />
+          <SortableList
+            items={sortableItems}
+            onReorder={handleReorder}
+            onRemove={handleRemove}
+            removePrompt="Remove education entry?"
+            removeWarning="This will drop the entry from the saved education list."
+          />
         </div>
       )}
 

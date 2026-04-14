@@ -92,6 +92,17 @@ def _split_display_name(display_name: str) -> tuple[str, str]:
     return first_name, last_name
 
 
+def _prefer_base_text(base_value: str, override_value) -> str:
+    """Keep workbook text when the local override is blank."""
+    if override_value is None:
+        return base_value
+
+    override_text = str(override_value)
+    if override_text.strip():
+        return override_text
+    return base_value
+
+
 def _normalize_person_key(value: str) -> str:
     """Normalize a person identifier for resilient lookup."""
     text = (value or "").strip().casefold()
@@ -184,6 +195,8 @@ def _merge_person_records(base: dict, override: dict | None) -> dict:
         value = override.get(key)
         if value is not None:
             merged[key] = value
+    merged["summary"] = _prefer_base_text(base.get("summary", ""), override.get("summary"))
+
     for key in ("education", "projects"):
         value = override.get(key)
         if value is not None:
@@ -281,6 +294,8 @@ def upsert_person_data(person_name: str, updates: dict) -> dict:
         for key in ("display_name", "name", "first_name", "last_name", "title", "summary"):
             if key in updates and updates[key] is not None:
                 merged[key] = updates[key]
+
+        merged["summary"] = _prefer_base_text(base.get("summary", ""), merged.get("summary"))
 
         for key in ("education", "projects"):
             if key in updates and updates[key] is not None:
