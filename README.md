@@ -1,47 +1,36 @@
 # Staff Resumes
 
-A web application for managing and generating staff resumes with Firebase and Cloud Run.
+A local-first web application for managing and generating staff resumes.
 
 ## Architecture
 
-- **Frontend**: React + Vite (served via Firebase Hosting)
-- **Backend**: Python FastAPI (served via Google Cloud Run)
+- **Frontend**: React + Vite
+- **Backend**: Python FastAPI
 - **Database**: Firestore
 - **Storage**: Firebase Storage
 - **Auth**: Firebase Authentication
 
-## Deployment
+## Hosted Path Status
 
-### Important: Firebase App Hosting ≠ Python Support
+The Firebase App Hosting and Cloud Run deployment path was attempted and intentionally abandoned.
 
-**Firebase App Hosting currently supports Node.js apps only.** Do not attempt to deploy a Python backend directly via Firebase App Hosting — it will fail with container startup errors trying to run `node index.js`.
+Reason:
+- Firebase App Hosting is Node.js-first and was not a good fit for this Python FastAPI backend.
+- Keeping the app local is simpler, more reliable, and avoids deployment and runtime mismatch issues.
 
-Your Python FastAPI backend is deployed via **Cloud Run** (a separate Google Cloud product), which Firebase Hosting can proxy to via the rewrite rules in `firebase.json`.
-
-### Setup for Production
-
-1. **Ensure Blaze plan**: Firebase Console → Project Settings. Cloud Run integration requires a billing-enabled Blaze plan.
-
-2. **Set up Artifact Registry** (for Cloud Build):
-   ```bash
-   gcloud artifacts repositories create cloud-run-repo \
-     --repository-format=docker \
-     --location=us-east4 \
-     --project=staff-resumes
-   ```
-
-3. **Deploy**:
-   ```bash
-   gcloud builds submit --config cloudbuild.yaml
-   ```
-   This builds the Docker image, pushes to Artifact Registry, and deploys to Cloud Run with the configured environment variables.
-
-4. **Verify**:
-   - Firebase Hosting serves the static React build
-   - `/api/**` requests are rewritten to Cloud Run
-   - Cloud Run logs show successful Python startup
+This repository is now intended to be run locally from the checked-out source.
 
 ## Local Development
+
+### Double-click start
+From File Explorer, run [Start-Local.bat](/c:/Users/ben.haddon/Documents/staff-resumes/Start-Local.bat). It opens the app locally and starts both the Vite frontend and FastAPI backend.
+
+Prerequisites:
+- Node.js and npm installed
+- Python installed
+- `web\.env.local` filled in with Firebase web config values
+
+On first run, the launcher will create `web\venv`, install Python dependencies, and install npm packages under `web`.
 
 ### Frontend
 ```bash
@@ -60,12 +49,11 @@ Runs backend on `http://localhost:8002` and frontend on `http://localhost:5174`
 ### Frontend (`.env.local`)
 - `VITE_FIREBASE_*` — Firebase config (public, baked into build)
 
-### Backend (`.env.production`)
-- Python-specific config (copied into Docker container at build time)
-- Cloud Run injects additional vars via `--set-env-vars` in `cloudbuild.yaml`
+### Backend (`.env`)
+- Local runtime paths and generation settings
+- Google credentials if needed for local Firebase Admin access
 
-## Architecture Decisions
+## Notes
 
-- **Cloud Run over App Hosting**: Gives you full control over the Docker image and runtime. Python/FastAPI just works without fighting Firebase's Node.js-first assumptions.
-- **Firebase Hosting rewrite to Cloud Run**: Clean separation — hosting serves static content, Cloud Run handles dynamic API requests.
-- **Application Default Credentials**: Cloud Run uses ADC instead of checking in service account keys. Safer and easier to manage.
+- Firebase is still used by the application itself for auth, Firestore, and storage.
+- What was removed is the Firebase Hosting/App Hosting and Cloud Run deployment work, not the Firebase-backed app behavior.
