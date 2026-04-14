@@ -137,9 +137,7 @@ export default function ProjectsEditor({ staffId }) {
   }
 
   async function handleAddProject() {
-    const hasAnyContent = [newProject.title, newProject.client, newProject.description]
-      .some((value) => String(value || '').trim());
-    if (!hasAnyContent) return;
+    if (!String(newProject.client || '').trim() || !String(newProject.title || '').trim()) return;
 
     setAddSaving(true);
     try {
@@ -175,46 +173,57 @@ export default function ProjectsEditor({ staffId }) {
           {errors.load}
         </p>
       )}
-      
-      {projects.length > 1 && (
-        <div className="flex items-center gap-2 mb-6 px-1 flex-wrap">
-          <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] mr-2">Sort by</span>
-          <SortButton
-            active={sortConfig.key === 'original'}
-            icon={<History size={14} />}
-            label="Original"
-            onClick={() => handleSort('original')}
-          />
-          <SortButton
-            active={sortConfig.key === 'client'}
-            direction={sortConfig.key === 'client' ? sortConfig.direction : null}
-            label="Client"
-            onClick={() => handleSort('client')}
-          />
-          <SortButton
-            active={sortConfig.key === 'title'}
-            direction={sortConfig.key === 'title' ? sortConfig.direction : null}
-            label="Project"
-            onClick={() => handleSort('title')}
-          />
-          <SortButton
-            active={sortConfig.key === 'start_date'}
-            direction={sortConfig.key === 'start_date' ? sortConfig.direction : null}
-            label="Start Date"
-            onClick={() => handleSort('start_date')}
-          />
-          <SortButton
-            active={sortConfig.key === 'end_date'}
-            direction={sortConfig.key === 'end_date' ? sortConfig.direction : null}
-            label="End Date"
-            onClick={() => handleSort('end_date')}
-          />
-        </div>
-      )}
 
-      {projects.length === 0 && !adding && (
+      {/* Top Action Bar */}
+      <div className="flex items-center justify-between gap-4 mb-6 px-1 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="button-primary min-w-[200px]"
+        >
+          <Plus size={18} /> Add New Project
+        </button>
+
+        {projects.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap ml-auto">
+            <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] mr-2">Sort by</span>
+            <SortButton
+              active={sortConfig.key === 'original'}
+              icon={<History size={14} />}
+              label="Original"
+              onClick={() => handleSort('original')}
+            />
+            <SortButton
+              active={sortConfig.key === 'client'}
+              direction={sortConfig.key === 'client' ? sortConfig.direction : null}
+              label="Client"
+              onClick={() => handleSort('client')}
+            />
+            <SortButton
+              active={sortConfig.key === 'title'}
+              direction={sortConfig.key === 'title' ? sortConfig.direction : null}
+              label="Project"
+              onClick={() => handleSort('title')}
+            />
+            <SortButton
+              active={sortConfig.key === 'start_date'}
+              direction={sortConfig.key === 'start_date' ? sortConfig.direction : null}
+              label="Start Date"
+              onClick={() => handleSort('start_date')}
+            />
+            <SortButton
+              active={sortConfig.key === 'end_date'}
+              direction={sortConfig.key === 'end_date' ? sortConfig.direction : null}
+              label="End Date"
+              onClick={() => handleSort('end_date')}
+            />
+          </div>
+        )}
+      </div>
+
+      {projects.length === 0 && (
         <p className="text-sm text-[var(--text-muted)] py-4">
-          No projects yet. Add your first one below.
+          No projects yet. Add your first one above.
         </p>
       )}
 
@@ -364,66 +373,108 @@ export default function ProjectsEditor({ staffId }) {
         );
       })}
 
-      {adding ? (
-        <div className="panel-surface overflow-hidden bg-[var(--bg-card)] mt-8">
-          <div className="panel-header py-4 bg-[var(--bg-panel)]/50">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--accent-main)]">New project</h3>
-          </div>
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <ProjectField label="Client">
-                <input
-                  type="text"
-                  value={newProject.client}
-                  onChange={(e) => setNewProject((p) => ({ ...p, client: e.target.value }))}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
-                  className={inputCls}
-                  autoFocus
-                />
-              </ProjectField>
-            </div>
-            <ProjectField label="Project Title">
+      {adding && (
+        <AddProjectModal
+          newProject={newProject}
+          setNewProject={setNewProject}
+          addSaving={addSaving}
+          onAdd={handleAddProject}
+          onCancel={() => { setAdding(false); setNewProject(BLANK_PROJECT); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddProjectModal({ newProject, setNewProject, addSaving, onAdd, onCancel }) {
+  const clientValid = String(newProject.client || '').trim().length > 0;
+  const titleValid = String(newProject.title || '').trim().length > 0;
+  const canSubmit = clientValid && titleValid;
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && canSubmit) onAdd();
+    if (e.key === 'Escape') onCancel();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.5)' }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div className="panel-surface w-full max-w-lg overflow-hidden bg-[var(--bg-card)]" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="panel-header py-4 flex items-center justify-between">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--accent-main)]">New Project</h3>
+          <button type="button" onClick={onCancel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors p-1">
+            ✕
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <ProjectField label="Client *">
+              <input
+                type="text"
+                value={newProject.client}
+                onChange={(e) => setNewProject((p) => ({ ...p, client: e.target.value }))}
+                onKeyDown={handleKeyDown}
+                className={inputCls}
+                autoFocus
+              />
+            </ProjectField>
+            <ProjectField label="Project Title *">
               <input
                 type="text"
                 value={newProject.title}
                 onChange={(e) => setNewProject((p) => ({ ...p, title: e.target.value }))}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
+                onKeyDown={handleKeyDown}
                 className={inputCls}
               />
             </ProjectField>
-            <div className="flex items-center gap-4 pt-4 border-t border-[var(--border-main)]">
-              <button
-                type="button"
-                onClick={handleAddProject}
-                disabled={addSaving}
-                className="button-primary min-w-[120px]"
-              >
-                {addSaving ? 'Adding...' : 'Create Project'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAdding(false);
-                  setNewProject(BLANK_PROJECT);
-                }}
-                className="button-secondary"
-              >
-                Cancel
-              </button>
-            </div>
+          </div>
+          <ProjectField label="Description" hint="Exact text that appears in the resume.">
+            <textarea
+              value={newProject.description}
+              onChange={(e) => setNewProject((p) => ({ ...p, description: e.target.value }))}
+              rows={4}
+              className={`${inputCls} resize-y`}
+            />
+          </ProjectField>
+          <div className="grid grid-cols-2 gap-4">
+            <ProjectField label="Start Date">
+              <input
+                type="date"
+                value={newProject.start_date}
+                onChange={(e) => setNewProject((p) => ({ ...p, start_date: e.target.value }))}
+                className={inputCls}
+              />
+            </ProjectField>
+            <ProjectField label="End Date" hint="Leave blank if ongoing">
+              <input
+                type="date"
+                value={newProject.end_date}
+                onChange={(e) => setNewProject((p) => ({ ...p, end_date: e.target.value }))}
+                className={inputCls}
+              />
+            </ProjectField>
+          </div>
+          <div className="flex items-center gap-4 pt-4 border-t border-[var(--border-main)]">
+            <button
+              type="button"
+              onClick={onAdd}
+              disabled={addSaving || !canSubmit}
+              className="button-primary min-w-[140px]"
+            >
+              {addSaving ? 'Adding...' : 'Create Project'}
+            </button>
+            <button type="button" onClick={onCancel} className="button-secondary">
+              Cancel
+            </button>
+            {!canSubmit && (
+              <p className="text-xs text-[var(--text-muted)] ml-auto">Client and title are required</p>
+            )}
           </div>
         </div>
-      ) : (
-        <div className="flex justify-end pt-8 mt-8 border-t border-[var(--border-main)]">
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="button-primary min-w-[200px]"
-          >
-            <Plus size={18} /> Add New Project
-          </button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

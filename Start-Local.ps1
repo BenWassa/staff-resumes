@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = $PSScriptRoot
 $webDir = Join-Path $repoRoot "web"
 
 function Test-Command($name) {
@@ -68,9 +68,13 @@ if (-not (Test-Path $venvPip)) {
 $requirementsFile = Join-Path $repoRoot "requirements.txt"
 $requirementsStamp = Join-Path $webDir "venv\.requirements-installed"
 $requirementsHash = (Get-FileHash $requirementsFile -Algorithm MD5).Hash
-$stampHash = if (Test-Path $requirementsStamp) { Get-Content $requirementsStamp -Raw } else { "" }
+$stampHash = ""
+if (Test-Path $requirementsStamp) {
+    $stampContent = Get-Content $requirementsStamp -Raw
+    if ($stampContent) { $stampHash = $stampContent.Trim() }
+}
 
-if ($requirementsHash.Trim() -ne $stampHash.Trim()) {
+if ($requirementsHash.Trim() -ne $stampHash) {
     Write-Host "Installing Python dependencies..." -ForegroundColor Cyan
     Push-Location $repoRoot
     & $venvPip install -r requirements.txt
