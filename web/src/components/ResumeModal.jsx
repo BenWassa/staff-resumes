@@ -4,6 +4,7 @@ import CloseButton from './CloseButton';
 import StepPackage from './StepPackage';
 import StepPeople from './StepPeople';
 import StepPersonConfig from './StepPersonConfig';
+import YamlImportDialog from './YamlImportDialog';
 import { slugify } from '../utils/slugify';
 import { apiFetch } from '../utils/apiFetch';
 
@@ -44,6 +45,7 @@ export default function ResumeModal({ isOpen, onClose }) {
   const [saves, setSaves] = useState([]);
   const [completedJob, setCompletedJob] = useState(null);
   const [error, setError] = useState('');
+  const [showYamlImport, setShowYamlImport] = useState(false);
 
   const stepIndex = STEPS.indexOf(step);
 
@@ -120,6 +122,7 @@ export default function ResumeModal({ isOpen, onClose }) {
       setGenerationJobId('');
       setShowGenerationSuccess(false);
       setCompletedJob(null);
+      setShowYamlImport(false);
     }
   }, [isOpen]);
 
@@ -206,6 +209,67 @@ export default function ResumeModal({ isOpen, onClose }) {
       setStep('configure');
     } catch (loadError) {
       setError(loadError.message);
+    }
+  };
+
+  const handleYamlImport = async (importedData) => {
+    setShowYamlImport(false);
+    setError('');
+
+    try {
+      const people = importedData.people || [];
+      if (people.length === 0) {
+        setError('YAML file did not contain any people.');
+        return;
+      }
+
+      // Load person data for each imported person
+      const results = await Promise.allSettled(
+        people.map((person) =>
+          apiFetch(`/api/people/${encodeURIComponent(person.name)}/data`).then(async (r) => {
+            const personJson = await r.json();
+            if (!r.ok) throw new Error(person.name);
+            return personJson;
+          })
+        )
+      );
+
+      const nextPersonData = {};
+      const validNames = [];
+      const nextSelections = {};
+      const missing = [];
+
+      results.forEach((result, index) => {
+        const person = people[index];
+        if (result.status === 'fulfilled') {
+          nextPersonData[person.name] = result.value;
+          validNames.push(person.name);
+          // Map imported projects to selections format
+          nextSelections[person.name] = {
+            projects: person.projects || [],
+            education_indices: result.value.education ? result.value.education.map((_, i) => i + 1) : [],
+          };
+        } else {
+          missing.push(person.name);
+        }
+      });
+
+      setSelectedNames(validNames);
+      setPersonData(nextPersonData);
+      setSelections(nextSelections);
+
+      if (missing.length > 0) {
+        setError(
+          `Note: ${missing.join(', ')} not found in workbook and ${missing.length === 1 ? 'was' : 'were'} skipped.`
+        );
+      } else {
+        setError('');
+      }
+
+      // Move to people selection step
+      setStep('people');
+    } catch (importError) {
+      setError(importError.message);
     }
   };
 
@@ -496,6 +560,7 @@ export default function ResumeModal({ isOpen, onClose }) {
                   <StepPackage
                     onLoadSave={handleLoadSave}
                     onSelectProject={handleProjectSelection}
+                    onYamlImport={() => setShowYamlImport(true)}
                     projects={allProjects}
                     saves={saves}
                     selectedProjectId={selectedProjectId}
@@ -567,6 +632,12 @@ export default function ResumeModal({ isOpen, onClose }) {
           </div>
         )}
       </div>
+
+      <YamlImportDialog
+        isOpen={showYamlImport}
+        onClose={() => setShowYamlImport(false)}
+        onImport={handleYamlImport}
+      />
     </div>
   );
 }

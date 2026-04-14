@@ -15,8 +15,9 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -159,6 +160,10 @@ class PersonUpdate(BaseModel):
 
 class ConfigPathsUpdate(BaseModel):
     pursuits_root: str | None = None
+
+
+class YamlImportRequest(BaseModel):
+    content: str
 
 
 def _job_percent(completed_steps: int, total_steps: int) -> int:
@@ -414,6 +419,151 @@ def api_set_config_paths(body: ConfigPathsUpdate):
         _trigger_pursuits_sync_background()
 
     return {"ok": True, **get_config_status()}
+
+
+@app.post("/api/yaml-import")
+def api_yaml_import(body: YamlImportRequest):
+    """Parse YAML import format and return structured data for pre-filling the form."""
+    try:
+        data = yaml.safe_load(body.content)
+        if not isinstance(data, dict):
+            raise ValueError("YAML must contain a dictionary at the root level.")
+
+        # Extract people list with their selections
+        people_list = data.get("people", [])
+        if not isinstance(people_list, list):
+            people_list = []
+
+        # Extract consolidated list for reference
+        consolidated = data.get("consolidated", {})
+        consolidated_include = consolidated.get("include", []) if isinstance(consolidated, dict) else []
+
+        # Build result
+        result = {
+            "people": [],
+            "consolidated_include": consolidated_include,
+        }
+
+        for person in people_list:
+            if not isinstance(person, dict):
+                continue
+
+            person_name = person.get("name", "").strip()
+            if not person_name:
+                continue
+
+            projects = person.get("projects", [])
+            if not isinstance(projects, list):
+                projects = []
+
+            # Extract project keys, maintaining order
+            project_keys = []
+            for proj in projects:
+                if isinstance(proj, dict):
+                    key = proj.get("key", "").strip()
+                    if key:
+                        project_keys.append(key)
+                elif isinstance(proj, str):
+                    proj = proj.strip()
+                    if proj:
+                        project_keys.append(proj)
+
+            result["people"].append({
+                "name": person_name,
+                "projects": project_keys,
+            })
+
+        return result
+    except yaml.YAMLError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid YAML: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/saves/{session_id}/yaml")
+def api_export_yaml(session_id: str):
+    """Export a saved session as YAML selections file."""
+    try:
+        session = get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found.")
+
+        # Build YAML structure from session data
+        selected_staff_ids = session.get("selected_staff_ids", [])
+        selections = session.get("selections", {})
+
+        people_data = []
+        for staff_id in selected_staff_ids:
+            person_selections = selections.get(staff_id, {})
+            person_projects = person_selections.get("projects", [])
+
+            people_data.append({
+                "name": staff_id,
+                "projects": [{"key": proj, "order": i + 1} for i, proj in enumerate(person_projects)],
+            })
+
+        consolidated_include = [name for name in selected_staff_ids]
+
+        yaml_data = {
+            "people": people_data,
+            "consolidated": {
+                "include": consolidated_include,
+            }
+        }
+
+        # Use safe_dump with default_flow_style=False for readable YAML
+        yaml_content = yaml.dump(
+            yaml_data,
+            default_flow_style=False,
+            sort_keys=False,
+            allow_unicode=True,
+        )
+
+        return StreamingResponse(
+            iter([yaml_content]),
+            media_type="text/yaml",
+            headers={"Content-Disposition": f"attachment; filename=\"{session_id}.selections.yaml\""},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/yaml-template")
+def api_yaml_template():
+    """Return a YAML template file."""
+    template = """# Staff Resume Selection Template
+#
+# Use this file to quickly set up a resume generation with pre-selected
+# staff members and their project assignments.
+
+people:
+  # List each person to include in the resume package
+  - name: Full Name As In Workbook
+    projects:
+      # Reference projects by their key (from pursuits)
+      - key: project_key_one
+        order: 1
+      - key: project_key_two
+        order: 2
+
+  - name: Another Person
+    projects:
+      - key: project_key_one
+        order: 1
+
+consolidated:
+  # Names to include in the consolidated/combined resume
+  include:
+    - Full Name As In Workbook
+    - Another Person
+"""
+    return StreamingResponse(
+        iter([template]),
+        media_type="text/yaml",
+        headers={"Content-Disposition": "attachment; filename=\"selections.template.yaml\""},
+    )
 
 
 @app.post("/api/system/select-folder")
