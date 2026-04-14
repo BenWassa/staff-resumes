@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import { apiFetch } from '../../utils/apiFetch';
+import {
+  getCachedStaffProfile,
+  loadStaffProfile,
+  saveStaffProfile,
+} from '../../utils/staffProfileApi';
 
 const TITLE_OPTIONS = [
   'Partner',
@@ -22,28 +26,48 @@ export default function BioEditor({ staffId }) {
   const summaryRef = useRef(null);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`);
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.detail || 'Failed to load profile.');
-        }
+    let isActive = true;
 
-        setFields({
-          first_name: data.first_name ?? '',
-          last_name: data.last_name ?? '',
-          title: data.title ?? '',
-          summary: data.summary ?? '',
-        });
-      } catch {
-        setErrorMsg('Could not load this profile.');
-      } finally {
+    const applyData = (data) => {
+      setFields({
+        first_name: data.first_name ?? '',
+        last_name: data.last_name ?? '',
+        title: data.title ?? '',
+        summary: data.summary ?? '',
+      });
+    };
+
+    async function load() {
+      const cached = getCachedStaffProfile(staffId);
+      if (cached) {
+        applyData(cached);
         setLoading(false);
+      } else {
+        setLoading(true);
+      }
+      setErrorMsg('');
+
+      try {
+        const data = await loadStaffProfile(staffId);
+        if (!isActive) {
+          return;
+        }
+        applyData(data);
+      } catch {
+        if (isActive) {
+          setErrorMsg('Could not load this profile.');
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
       }
     }
     load();
+
+    return () => {
+      isActive = false;
+    };
   }, [staffId]);
 
   useEffect(() => {
@@ -62,19 +86,12 @@ export default function BioEditor({ staffId }) {
     setSaveState('saving');
     setErrorMsg('');
     try {
-      const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          first_name: fields.first_name,
-          last_name: fields.last_name,
-          title: fields.title,
-          summary: fields.summary,
-        }),
+      const data = await saveStaffProfile(staffId, {
+        first_name: fields.first_name,
+        last_name: fields.last_name,
+        title: fields.title,
+        summary: fields.summary,
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.detail || 'Save failed. Please try again.');
-      }
       setFields({
         first_name: data.first_name ?? '',
         last_name: data.last_name ?? '',

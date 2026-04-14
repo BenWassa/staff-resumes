@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Plus, CheckCircle2, Loader2 } from 'lucide-react';
-import { apiFetch } from '../../utils/apiFetch';
+import {
+  getCachedStaffProfile,
+  loadStaffProfile,
+  saveStaffProfile,
+} from '../../utils/staffProfileApi';
 import SortableList from '../SortableList';
 
 const BLANK_EDU = { degree_cert: '', degree_area: '', location: '' };
@@ -12,22 +16,39 @@ export default function EducationEditor({ staffId }) {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
+    let isActive = true;
+
     async function load() {
-      setLoading(true);
+      const cached = getCachedStaffProfile(staffId);
+      if (cached) {
+        setEntries((cached.education ?? []).map((entry, index) => ({ _id: makeId(index), ...entry })));
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+      setErrorMsg('');
+
       try {
-        const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`);
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.detail || 'Failed to load education.');
+        const data = await loadStaffProfile(staffId);
+        if (!isActive) {
+          return;
         }
         setEntries((data.education ?? []).map((entry, index) => ({ _id: makeId(index), ...entry })));
       } catch {
-        setErrorMsg('Could not load education entries.');
+        if (isActive) {
+          setErrorMsg('Could not load education entries.');
+        }
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     }
     load();
+
+    return () => {
+      isActive = false;
+    };
   }, [staffId]);
 
   function addEntry() {
@@ -59,20 +80,13 @@ export default function EducationEditor({ staffId }) {
     setSaveState('saving');
     setErrorMsg('');
     try {
-      const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          education: entries.map((entry) => {
-            const rest = { ...entry };
-            delete rest._id;
-            return rest;
-          }),
+      const data = await saveStaffProfile(staffId, {
+        education: entries.map((entry) => {
+          const rest = { ...entry };
+          delete rest._id;
+          return rest;
         }),
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.detail || 'Save failed. Please try again.');
-      }
       setEntries((data.education ?? []).map((entry, index) => ({ _id: makeId(index), ...entry })));
       setSaveState('saved');
       setTimeout(() => setSaveState('idle'), 2000);
@@ -193,8 +207,6 @@ function EduField({ label, children }) {
     </div>
   );
 }
-
-const inputCls = 'input-field';
 
 function makeId(index) {
   return `${crypto.randomUUID()}_${index}`;

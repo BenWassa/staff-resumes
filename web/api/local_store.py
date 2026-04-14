@@ -8,6 +8,7 @@ base staff/project data, while local edits are persisted as overrides.
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 import threading
 from copy import deepcopy
@@ -91,15 +92,75 @@ def _split_display_name(display_name: str) -> tuple[str, str]:
     return first_name, last_name
 
 
-def _base_person_record(person_name: str) -> dict:
-    from web.api.workbook import get_person_data as workbook_person_data
+def _normalize_person_key(value: str) -> str:
+    """Normalize a person identifier for resilient lookup."""
+    text = (value or "").strip().casefold()
+    if not text:
+        return ""
+    text = re.sub(r"[-_/]+", " ", text)
+    text = re.sub(r"[^\w\s]", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _resolve_person_name(
+    requested_name: str, *, overrides: dict[str, dict] | None = None
+) -> str:
+    """Resolve a requested person name to a canonical workbook name."""
+    from web.api.workbook import list_people as workbook_list_people
+
+    candidate = (requested_name or "").strip()
+    if not candidate:
+        return candidate
 
     try:
-        data = workbook_person_data(person_name)
+        workbook_people = workbook_list_people()
+    except Exception:
+        workbook_people = []
+
+    known_names: set[str] = set()
+    for person in workbook_people:
+        for key in ("name", "display_name"):
+            value = str(person.get(key) or "").strip()
+            if value:
+                known_names.add(value)
+
+    if overrides:
+        for staff_id, data in overrides.items():
+            if staff_id:
+                known_names.add(str(staff_id).strip())
+            for key in ("name", "display_name"):
+                value = str((data or {}).get(key) or "").strip()
+                if value:
+                    known_names.add(value)
+
+    if candidate in known_names:
+        return candidate
+
+    requested_normalized = _normalize_person_key(candidate)
+    if not requested_normalized:
+        return candidate
+
+    normalized_lookup: dict[str, str] = {}
+    for known in known_names:
+        normalized = _normalize_person_key(known)
+        if normalized and normalized not in normalized_lookup:
+            normalized_lookup[normalized] = known
+
+    return normalized_lookup.get(requested_normalized, candidate)
+
+
+def _base_person_record(person_name: str, *, overrides: dict[str, dict] | None = None) -> dict:
+    from web.api.workbook import get_person_data as workbook_person_data
+
+    resolved_name = _resolve_person_name(person_name, overrides=overrides)
+
+    try:
+        data = workbook_person_data(resolved_name)
     except Exception as exc:
         raise ValueError(f"No staff record found for '{person_name}'") from exc
 
-    display_name = data.get("name") or person_name
+    display_name = data.get("name") or resolved_name or person_name
     first_name, last_name = _split_display_name(display_name)
     return {
         "staff_id": display_name,
@@ -201,7 +262,7 @@ def get_person_data(person_name: str) -> dict:
     with _STORE_LOCK:
         overrides = _load_staff_store()
 
-    base = _base_person_record(person_name)
+    base = _base_person_record(person_name, overrides=overrides)
     override = overrides.get(base["staff_id"]) or overrides.get(person_name)
     merged = _merge_person_records(base, override)
     return merged
@@ -212,7 +273,7 @@ def upsert_person_data(person_name: str, updates: dict) -> dict:
     with _STORE_LOCK:
         overrides = _load_staff_store()
 
-        base = _base_person_record(person_name)
+        base = _base_person_record(person_name, overrides=overrides)
         staff_id = base["staff_id"]
         current = _merge_person_records(base, overrides.get(staff_id))
         merged = dict(current)

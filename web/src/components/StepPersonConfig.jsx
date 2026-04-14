@@ -75,7 +75,7 @@ function sortProjectsForSearch(projects, query) {
     const scoreDifference =
       getProjectSearchScore(a, normalizedQuery) - getProjectSearchScore(b, normalizedQuery);
     if (scoreDifference !== 0) return scoreDifference;
-    return (a.title || a.key).localeCompare(b.title || b.key);
+    return (a.title || '').localeCompare(b.title || '');
   });
 }
 
@@ -353,7 +353,7 @@ function ProjectSelectionModal({
                 id="project-search"
                 onChange={(event) => setSearchQuery(event.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                placeholder="Type a project name, client, or key. Press Enter to add the top match."
+                placeholder="Type a project name or client. Press Enter to add the top match."
                 type="text"
                 value={searchQuery}
               />
@@ -437,7 +437,7 @@ function ProjectSelectionModal({
                   </div>
                   <div className="min-w-0">
                     <div className="truncate text-base text-[var(--text-main)]">
-                      {project.title || project.key}
+                      {project.title || 'Untitled project'}
                     </div>
                   </div>
                   <div className="min-w-0">
@@ -499,7 +499,7 @@ function PersonPanel({ data, selection, onChangeSelection }) {
     const project = availableProjects.find((item) => item.key === key);
     return {
       id: key,
-      label: project?.title ?? key,
+      label: project?.title || 'Untitled project',
       sublabel: project?.client ?? '',
     };
   });

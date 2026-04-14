@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Plus, CheckCircle2, Loader2 } from 'lucide-react';
-import { apiFetch } from '../../utils/apiFetch';
+import {
+  getCachedStaffProfile,
+  loadStaffProfile,
+  saveStaffProfile,
+} from '../../utils/staffProfileApi';
 
 const BLANK_PROJECT = {
-  key: '',
   client: '',
   title: '',
   description: '',
@@ -24,22 +27,41 @@ export default function ProjectsEditor({ staffId }) {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    let isActive = true;
+    setExpandedKey(null);
+    setDeletingKey(null);
+    setSavedKey(null);
+
     async function load() {
-      setLoading(true);
+      const cached = getCachedStaffProfile(staffId);
+      if (cached) {
+        setProjects(cached.projects ?? []);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+      setErrors({});
       try {
-        const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`);
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.detail || 'Failed to load projects.');
+        const data = await loadStaffProfile(staffId);
+        if (!isActive) {
+          return;
         }
         setProjects(data.projects ?? []);
       } catch {
-        setErrors({ load: 'Could not load projects.' });
+        if (isActive) {
+          setErrors({ load: 'Could not load projects.' });
+        }
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     }
     load();
+
+    return () => {
+      isActive = false;
+    };
   }, [staffId]);
 
   function updateField(key, field, value) {
@@ -47,14 +69,7 @@ export default function ProjectsEditor({ staffId }) {
   }
 
   async function saveProjects(nextProjects) {
-    const response = await apiFetch(`/api/people/${encodeURIComponent(staffId)}/data`, {
-      method: 'PUT',
-      body: JSON.stringify({ projects: nextProjects }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.detail || 'Save failed. Try again.');
-    }
+    const data = await saveStaffProfile(staffId, { projects: nextProjects });
     return data.projects ?? [];
   }
 
@@ -87,16 +102,22 @@ export default function ProjectsEditor({ staffId }) {
   }
 
   async function handleAddProject() {
-    if (!newProject.key.trim()) return;
+    const hasAnyContent = [newProject.title, newProject.client, newProject.description]
+      .some((value) => String(value || '').trim());
+    if (!hasAnyContent) return;
+
     setAddSaving(true);
     try {
-      const proj = { ...newProject };
+      const proj = {
+        ...newProject,
+        key: buildProjectKey(newProject, projects),
+      };
       const nextProjects = [...projects, proj];
       const savedProjects = await saveProjects(nextProjects);
       setProjects(savedProjects);
       setNewProject(BLANK_PROJECT);
       setAdding(false);
-      setExpandedKey(newProject.key);
+      setExpandedKey(proj.key);
     } catch {
       // leave form open so they can retry
     } finally {
@@ -114,6 +135,11 @@ export default function ProjectsEditor({ staffId }) {
 
   return (
     <div className="space-y-3">
+      {errors.load && (
+        <p className="text-sm text-[var(--accent-main)]">
+          {errors.load}
+        </p>
+      )}
       {projects.length === 0 && !adding && (
         <p className="text-sm text-[var(--text-muted)] py-4">
           No projects yet. Add your first one below.
@@ -144,9 +170,7 @@ export default function ProjectsEditor({ staffId }) {
                   )}
                 </p>
                 <p className="text-xs text-[var(--text-muted)] truncate">
-                  {project.client}
-                  {project.client && project.key ? ' · ' : ''}
-                  {project.key}
+                  {project.client || 'Client not set'}
                 </p>
               </div>
               {isOpen ? (
@@ -158,18 +182,7 @@ export default function ProjectsEditor({ staffId }) {
 
             {isOpen && (
               <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)]">
-                <div className="pt-3 grid grid-cols-2 gap-3">
-                  <ProjectField
-                    label="Project Key"
-                    hint="Used to match projects in resumes — changing it may break saved sessions."
-                  >
-                    <input
-                      type="text"
-                      value={project.key}
-                      readOnly
-                      className={`${inputCls} opacity-60 cursor-not-allowed`}
-                    />
-                  </ProjectField>
+                <div className="pt-3">
                   <ProjectField label="Client">
                     <input
                       type="text"
@@ -199,22 +212,20 @@ export default function ProjectsEditor({ staffId }) {
                 </ProjectField>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <ProjectField label="Start Date" hint='e.g. "Jan 2023"'>
+                  <ProjectField label="Start Date" hint="Use the calendar picker">
                     <input
-                      type="text"
+                      type="date"
                       value={project.start_date}
                       onChange={(e) => updateField(project.key, 'start_date', e.target.value)}
                       className={inputCls}
-                      placeholder="Jan 2023"
                     />
                   </ProjectField>
                   <ProjectField label="End Date" hint="Leave blank if ongoing">
                     <input
-                      type="text"
+                      type="date"
                       value={project.end_date}
                       onChange={(e) => updateField(project.key, 'end_date', e.target.value)}
                       className={inputCls}
-                      placeholder="Dec 2024"
                     />
                   </ProjectField>
                 </div>
@@ -280,17 +291,6 @@ export default function ProjectsEditor({ staffId }) {
           </div>
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <ProjectField label="Project Key *" hint="Unique identifier, e.g. ANAHEIM-2024">
-                <input
-                  type="text"
-                  value={newProject.key}
-                  onChange={(e) => setNewProject((p) => ({ ...p, key: e.target.value }))}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
-                  className={inputCls}
-                  placeholder="CLIENT-YEAR"
-                  autoFocus
-                />
-              </ProjectField>
               <ProjectField label="Client">
                 <input
                   type="text"
@@ -298,6 +298,7 @@ export default function ProjectsEditor({ staffId }) {
                   onChange={(e) => setNewProject((p) => ({ ...p, client: e.target.value }))}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
                   className={inputCls}
+                  autoFocus
                 />
               </ProjectField>
             </div>
@@ -314,7 +315,7 @@ export default function ProjectsEditor({ staffId }) {
               <button
                 type="button"
                 onClick={handleAddProject}
-                disabled={!newProject.key.trim() || addSaving}
+                disabled={addSaving}
                 className="button-primary min-w-[120px]"
               >
                 {addSaving ? 'Adding...' : 'Create Project'}
@@ -358,3 +359,32 @@ function ProjectField({ label, hint, children }) {
 }
 
 const inputCls = 'input-field';
+
+function normalizeProjectKeyPart(value) {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+}
+
+function buildProjectKey(newProject, existingProjects) {
+  const primary =
+    normalizeProjectKeyPart(newProject.title) ||
+    normalizeProjectKeyPart(newProject.client) ||
+    `PROJECT-${Date.now()}`;
+
+  const existing = new Set((existingProjects || []).map((project) => project.key));
+  if (!existing.has(primary)) {
+    return primary;
+  }
+
+  let suffix = 2;
+  let candidate = `${primary}-${suffix}`;
+  while (existing.has(candidate)) {
+    suffix += 1;
+    candidate = `${primary}-${suffix}`;
+  }
+  return candidate;
+}
