@@ -1,5 +1,7 @@
 # BLC Staff Resumes
 
+![License: MIT License](https://img.shields.io/badge/License-mit-blue.svg)
+
 A local-only web application and processing pipeline for managing staff profiles and generating high-quality proposal resumes from a central global workbook.
 
 ## Project Structure
