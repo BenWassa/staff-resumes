@@ -440,6 +440,29 @@ function ProjectField({ label, hint, children }) {
 
 const inputCls = 'input-field';
 
+function SortButton({ active, label, onClick, direction, icon }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all border ${
+        active
+          ? 'bg-[var(--accent-main)] text-[var(--accent-text)] border-[var(--accent-main)]'
+          : 'bg-transparent text-[var(--text-muted)] border-[var(--border)] hover:border-[var(--text-muted)]'
+      }`}
+    >
+      {icon}
+      {label}
+      {direction && (
+        <ArrowUpDown
+          size={12}
+          className={`transition-transform ${direction === 'desc' ? 'rotate-180' : ''}`}
+        />
+      )}
+    </button>
+  );
+}
+
 function normalizeProjectKeyPart(value) {
   return String(value || '')
     .trim()
